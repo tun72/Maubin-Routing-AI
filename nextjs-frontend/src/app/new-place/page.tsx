@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Navigation, Search, Sun, Moon, Route, Clock, Car, Brain, Zap, Target, Maximize2 } from 'lucide-react';
+import { MapPin, Navigation, Search, Route, Clock, Car, Brain, Zap, Target, Maximize2 } from 'lucide-react';
 import Header from '@/components/home/Header';
-import AnimateBackground from '@/components/landing/AnimatedBg';
+
 
 interface RouteInfo {
     distance: string;
@@ -12,7 +13,7 @@ interface RouteInfo {
 }
 
 const LocationFinder: React.FC = () => {
-    const [isDark, setIsDark] = useState(false);
+
     const [yourLocation, setYourLocation] = useState('');
     const [destination, setDestination] = useState('');
     const [isSearching, setIsSearching] = useState(false);
@@ -25,13 +26,6 @@ const LocationFinder: React.FC = () => {
     const mapInstanceRef = useRef<any>(null);
     const routeLayerRef = useRef<any>(null);
 
-    useEffect(() => {
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }, [isDark]);
 
     useEffect(() => {
         // Initialize Leaflet map
@@ -87,6 +81,7 @@ const LocationFinder: React.FC = () => {
         setIsSearching(true);
 
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const L = (window as any).L;
 
             // Geocode both locations
@@ -190,6 +185,7 @@ const LocationFinder: React.FC = () => {
                         if (mapInstanceRef.current) {
                             mapInstanceRef.current.setView([latitude, longitude], 15);
                         }
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     } catch (error) {
                         setYourLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
                     }
