@@ -48,7 +48,7 @@
   /* Dark Theme */
   .dark {
     /* Background & Foreground */
-    --background: 30, 41, 59; /* Dark blue-gray */
+    --background: 30, 41, 60; /* Dark blue-gray */
     --foreground: 241, 245, 249; /* Light gray */
 
     /* Card */
