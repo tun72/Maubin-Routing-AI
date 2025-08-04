@@ -6,12 +6,16 @@ import React, { useEffect, useState } from 'react'
 import { ThemeToggle } from '../ui/theme-toogle';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import LanguageToogle from '../toogle-language';
 
 function Header() {
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
+
+    const t = useTranslations('HomePage');
 
     useEffect(() => {
         setMounted(true);
@@ -32,8 +36,8 @@ function Header() {
                         <div className={`w-10 h-10 bg-gradient-to-r dark:from-cyan-400 dark:to-purple-500 from-blue-500 to-purple-600 rounded-xl flex items-center justify-center`}>
                             <Navigation className="w-6 h-6 text-white" />
                         </div>
-                        <span className={`text-2xl font-bold bg-gradient-to-r ${customTheme.accent} bg-clip-text text-transparent`}>
-                            Routing AI (MUB)
+                        <span className={`text-2xl  flex items-center font-bold bg-gradient-to-r ${customTheme.accent} bg-clip-text h-10 text-transparent`}>
+                            {t("title")}
                         </span>
                     </div>
 
@@ -46,6 +50,7 @@ function Header() {
 
                     <div className="hidden md:flex items-center space-x-4">
                         <ThemeToggle />
+                        <LanguageToogle />
                         <Link href={"/home"}
                             className={`px-6 py-2 hover:no-underline bg-gradient-to-r dark:from-cyan-500 dark:to-purple-600 dark:hover:from-cyan-400 dark:hover:to-purple-500 from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg dark:hover:shadow-purple-500/25  hover:shadow-blue-500/25 text-white`}
                         >

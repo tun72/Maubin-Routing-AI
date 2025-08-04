@@ -9,7 +9,8 @@ import AnimateBackground from '@/components/landing/AnimatedBg';
 import GallarySecion from '@/components/landing/GallarySecion';
 
 
-const NavigationLanding = () => {
+
+const NavigationLanding = async () => {
 
 
   return (
