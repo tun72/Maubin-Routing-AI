@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 import psycopg2
 import psycopg2.extras
 from geopy.distance import great_circle
@@ -8,6 +8,7 @@ import os
 import uuid
 import math
 from dotenv import load_dotenv
+import datetime
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
@@ -244,14 +245,70 @@ def login():
         (email, password)
     )
     user = cur.fetchone()
-    cur.close()
-    conn.close()
-    
+    print(f"User found: {user is not None}")
+    if user:
+        cur.execute(
+            "UPDATE users SET last_login = NOW() WHERE id = %s;",
+            (user['id'],)
+        )
+        conn.commit()
+    else:
+        app.logger.warning(f"Login failed for user: {email}")
+
     if user:
         access_token = create_access_token(identity=str(user['id']))
-        return jsonify(access_token=access_token, user=user), 200
-    
+        refresh_token = create_refresh_token(identity=str(user['id']))
+        # Store refresh token in DB
+        expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        cur.execute(
+            "INSERT INTO user_refresh_tokens (user_id, refresh_token, expires_at) VALUES (%s, %s, %s);",
+            (user['id'], refresh_token, expires_at)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        # Don't return password hash!
+        user_dict = dict(user)
+        user_dict.pop('password_hash', None)
+        return jsonify(access_token=access_token, refresh_token=refresh_token, user=user_dict), 200
+
+    cur.close()
+    conn.close()
     return jsonify({"msg": "Invalid credentials"}), 401
+
+# Refresh Token
+@app.route('/refresh-token', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh_token():
+    current_user = get_jwt_identity()
+    jti = get_jwt()["jti"]
+    refresh_token = request.json.get("refresh_token")
+    if not refresh_token:
+        return jsonify({"msg": "Missing refresh token"}), 400
+
+    # Check if refresh token is valid and not revoked
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT revoked, expires_at FROM user_refresh_tokens WHERE refresh_token = %s AND user_id = %s;",
+        (refresh_token, current_user)
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        conn.close()
+        return jsonify({"msg": "Invalid refresh token"}), 401
+    revoked, expires_at = row
+    if revoked or expires_at < datetime.datetime.utcnow():
+        cur.close()
+        conn.close()
+        return jsonify({"msg": "Refresh token expired or revoked"}), 401
+
+    # Issue new access token
+    access_token = create_access_token(identity=current_user)
+    cur.close()
+    conn.close()
+    return jsonify(access_token=access_token), 200
 
 # Route Planning
 @app.route('/routes', methods=['POST'])
