@@ -81,26 +81,3 @@ export const galleryImages = [
       "https://images.unsplash.com/photo-1518611012118-696072aa579a?fit=crop&crop=center",
   },
 ];
-
-export const faqs = [
-  {
-    question: "How does the AI pathfinding work?",
-    answer:
-      "Our AI analyzes real-time traffic data, road conditions, weather, and historical patterns to calculate the most efficient route. It continuously learns and adapts to provide increasingly accurate predictions.",
-  },
-  {
-    question: "Is the app available offline?",
-    answer:
-      "Yes! You can download maps for offline use. The app works without an internet connection, though some features like real-time traffic updates require connectivity.",
-  },
-  {
-    question: "What platforms is NaviAI available on?",
-    answer:
-      "NaviAI is available on iOS, Android, and as a web application. We also offer API access for developers and enterprise solutions.",
-  },
-  {
-    question: "How accurate are the estimated arrival times?",
-    answer:
-      "Our AI-powered predictions are 95% accurate on average, significantly more precise than traditional GPS systems. The accuracy improves as we gather more data about your routes.",
-  },
-];

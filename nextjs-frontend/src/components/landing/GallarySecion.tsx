@@ -11,12 +11,15 @@ import img4 from "@/assets/imgs/img4.jpg"
 
 
 import img5 from "@/assets/imgs/img5.jpg"
+import { useTranslations } from 'next-intl';
 
 
 function GallarySecion() {
 
     const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const t = useTranslations('HomePage');
+
 
     useEffect(() => {
         setMounted(true);
@@ -34,9 +37,9 @@ function GallarySecion() {
         <section id="gallery" className="relative py-20 md:py-20 cursor-pointer">
             <div className="mx-auto max-w-7xl px-6">
                 <div className="text-center max-w-3xl mx-auto mb-16">
-                    <h2 className="text-4xl font-bold">Gallary Of Maubin</h2>
+                    <h2 className="text-4xl font-bold">{t("subtitle_3")}</h2>
                     <p className={`mt-4 text-lg ${customTheme.textSecondary}`}>
-                        Explore the innovative features and tools designed to enhance your productivity and streamline your workflow.
+                        {t("paragraph_2")}
                     </p>
                 </div>
 
@@ -45,7 +48,6 @@ function GallarySecion() {
                     <div
                         className={`group relative aspect-video overflow-hidden rounded-3xl border ${customTheme.border} transition-all duration-500 hover:scale-105`}
                     >
-                        \
                         <Image
                             src={img1}
                             alt='image1'
