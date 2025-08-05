@@ -13,12 +13,13 @@ CREATE TABLE users (
 -- 2. LOCATIONS (POIs)
 CREATE TABLE locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
+    burmese_name VARCHAR(255) NOT NULL,
+    english_name VARCHAR(255) NOT NULL,
     address TEXT,
     geom GEOGRAPHY(POINT, 4326) NOT NULL,
     type VARCHAR(50) CHECK(type IN (
         'restaurant', 'hospital', 'gas_station', 'landmark', 
-        'intersection', 'park', 'school', 'store', 'other'
+        'intersection', 'park', 'school', 'store', 'pagoda', 'other'
     )),
     popularity INT DEFAULT 0,
     CONSTRAINT unique_location_point UNIQUE (geom)

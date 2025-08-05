@@ -5,10 +5,10 @@ INSERT INTO users (username, email, password_hash, is_admin) VALUES
 ('city_explorer', 'sara@explorer.com', crypt('SecurePass!456', gen_salt('bf')), false);
 
 -- Sample locations
-INSERT INTO locations (name, address, geom, type) VALUES
-('Central Park', 'Park Avenue', ST_GeogFromText('POINT(-73.9688 40.7851)'), 'park'),
-('Main Hospital', '123 Medical Dr', ST_GeogFromText('POINT(-73.9722 40.7798)'), 'hospital'),
-('Downtown Diner', '45 Food Street', ST_GeogFromText('POINT(-73.9653 40.7824)'), 'restaurant');
+INSERT INTO locations (burmese_name, english_name, address, geom, type) VALUES
+('မြို့တော်ပန်းခြံ', 'Central Park', 'Park Avenue', ST_GeogFromText('POINT(-73.9688 40.7851)'), 'park'),
+('ပြည်သူ့ဆေးရုံကြီး', 'Main Hospital', '123 Medical Dr', ST_GeogFromText('POINT(-73.9722 40.7798)'), 'hospital'),
+('ည‌ဈေးတန်း', 'Downtown Diner', '45 Food Street', ST_GeogFromText('POINT(-73.9653 40.7824)'), 'restaurant');
 
 -- Sample roads
 INSERT INTO roads (geom, length_m, max_speed_kmh, road_type, name) VALUES

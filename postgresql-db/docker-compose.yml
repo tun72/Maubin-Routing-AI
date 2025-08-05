@@ -1,7 +1,7 @@
 services:
   db:
     image: postgis/postgis:15-3.3
-    container_name: mub_route_planner_db
+    container_name: mub_routing_db
     env_file:
       - .env
     environment:
@@ -18,7 +18,7 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
-    container_name: pgadmin
+    container_name: mub_routing_pgadmin
     env_file:
       - .env
     environment:
