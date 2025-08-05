@@ -9,12 +9,13 @@ import uuid
 import math
 from dotenv import load_dotenv
 import datetime
+from functools import wraps
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
+load_dotenv()
+CORS(app, origins=os.environ.get('ORIGIN').split(","), supports_credentials=True)
 app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET')
 jwt = JWTManager(app)
-load_dotenv()
 
 # Database connection function
 def get_db_connection():
@@ -199,6 +200,8 @@ def handle_options(path):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
+# === USER AUTHENTICATION ===
+
 # User Registration
 @app.route('/register', methods=['POST'])
 def register():
@@ -245,7 +248,7 @@ def login():
         (email, password)
     )
     user = cur.fetchone()
-    print(f"User found: {user is not None}")
+    
     if user:
         cur.execute(
             "UPDATE users SET last_login = NOW() WHERE id = %s;",
@@ -258,7 +261,7 @@ def login():
     if user:
         access_token = create_access_token(identity=str(user['id']))
         refresh_token = create_refresh_token(identity=str(user['id']))
-        # Store refresh token in DB
+        
         expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=7)
         cur.execute(
             "INSERT INTO user_refresh_tokens (user_id, refresh_token, expires_at) VALUES (%s, %s, %s);",
@@ -267,7 +270,7 @@ def login():
         conn.commit()
         cur.close()
         conn.close()
-        # Don't return password hash!
+        
         user_dict = dict(user)
         user_dict.pop('password_hash', None)
         return jsonify(access_token=access_token, refresh_token=refresh_token, user=user_dict), 200
@@ -309,6 +312,90 @@ def refresh_token():
     cur.close()
     conn.close()
     return jsonify(access_token=access_token), 200
+
+# User Logout
+@app.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    data = request.get_json()
+    refresh_token = data.get('refresh_token')
+    if not refresh_token:
+        return jsonify({"msg": "Missing refresh_token in request body"}), 400
+
+    user_id = get_jwt_identity()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "UPDATE user_refresh_tokens SET revoked = TRUE WHERE user_id = %s AND refresh_token = %s;",
+            (user_id, refresh_token)
+        )
+        conn.commit()
+        return jsonify({"msg": "Successfully logged out"}), 200
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Logout failed: {e}")
+        return jsonify({"msg": "Logout failed"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+# User Profile
+@app.route('/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    user_id = get_jwt_identity()
+    
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    try:
+        cur.execute("SELECT id, username, email, is_admin, last_login FROM users WHERE id = %s;", (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+            
+        user_dict = dict(user)
+        user_dict['last_login'] = user_dict['last_login'].isoformat() if user_dict['last_login'] else None
+        
+        return jsonify(user_dict), 200
+        
+    finally:
+        cur.close()
+        conn.close()
+
+# User Profile Update
+@app.route('/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    username = data.get('username')
+    email = data.get('email')
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(
+            "UPDATE users SET username = %s, email = %s WHERE id = %s;",
+            (username, email, user_id)
+        )
+        conn.commit()
+        return jsonify({"msg": "Profile updated successfully"}), 200
+
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Database error: {str(e)}")
+        return jsonify({"msg": "Failed to update profile"}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+# === ROUTE PLANNING ===
 
 # Route Planning
 @app.route('/routes', methods=['POST'])
@@ -537,8 +624,7 @@ def get_saved_locations():
         cur.close()
         conn.close()
 
-# Add to imports
-from functools import wraps
+# === ADMIN ===
 
 # Admin check decorator
 def admin_required(fn):
@@ -566,31 +652,37 @@ def admin_required(fn):
 @admin_required
 def create_location():
     data = request.get_json()
-    name = data.get('name')
+    burmese_name = data.get('burmese_name')
+    english_name = data.get('english_name')
     address = data.get('address')
     lon = data.get('lon')
     lat = data.get('lat')
     loc_type = data.get('type')
-    
-    if not name or lon is None or lat is None:
+
+    if not burmese_name or english_name is None or address is None or lon is None or lat is None:
         return jsonify({"msg": "Missing name or coordinates"}), 400
     
     conn = get_db_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     try:
-        # Create location
         cur.execute(
-            "INSERT INTO locations (name, address, geom, type) "
-            "VALUES (%s, %s, ST_GeogFromText(%s), %s) "
-            "RETURNING id, name, type;",
-            (name, address, f"POINT({lon} {lat})", loc_type)
+            "INSERT INTO locations (burmese_name, english_name, address, geom, type) "
+            "VALUES (%s, %s, %s, ST_GeogFromText(%s), %s) "
+            "RETURNING id, burmese_name, english_name, address, type;",
+            (burmese_name, english_name, address, f"POINT({lon} {lat})", loc_type)
         )
         location = cur.fetchone()
         conn.commit()
+
+        if not location:
+            return jsonify({"msg": "Failed to create location, no data returned."}), 500
+
         return jsonify({
-            "id": location[0],
-            "name": location[1],
-            "type": location[2],
+            "id": location['id'],
+            "burmese_name": location['burmese_name'],
+            "english_name": location['english_name'],
+            "address": location['address'],
+            "type": location['type'],
             "msg": "Location created"
         }), 201
     except Exception as e:
@@ -619,17 +711,21 @@ def get_all_locations():
         conn.close()
 
 # Update Location (Admin)
-@app.route('/admin/locations/<int:location_id>', methods=['PUT'])
+@app.route('/admin/locations/<uuid:location_id>', methods=['PUT'])
 @admin_required
 def update_location(location_id):
     data = request.get_json()
     updates = []
     params = []
-    
-    if 'name' in data:
-        updates.append("name = %s")
-        params.append(data['name'])
-    
+
+    if 'burmese_name' in data:
+        updates.append("burmese_name = %s")
+        params.append(data['burmese_name'])
+
+    if 'english_name' in data:
+        updates.append("english_name = %s")
+        params.append(data['english_name'])
+
     if 'address' in data:
         updates.append("address = %s")
         params.append(data['address'])
@@ -645,7 +741,7 @@ def update_location(location_id):
     if not updates:
         return jsonify({"msg": "No updates provided"}), 400
     
-    params.append(location_id)
+    params.append(str(location_id))
     
     conn = get_db_connection()
     cur = conn.cursor()
@@ -666,13 +762,13 @@ def update_location(location_id):
         conn.close()
 
 # Delete Location (Admin)
-@app.route('/admin/locations/<int:location_id>', methods=['DELETE'])
+@app.route('/admin/locations/<uuid:location_id>', methods=['DELETE'])
 @admin_required
 def delete_location(location_id):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("DELETE FROM locations WHERE id = %s RETURNING id;", (location_id,))
+        cur.execute("DELETE FROM locations WHERE id = %s RETURNING id;", (str(location_id),))
         deleted = cur.fetchone()
         if not deleted:
             return jsonify({"msg": "Location not found"}), 404
