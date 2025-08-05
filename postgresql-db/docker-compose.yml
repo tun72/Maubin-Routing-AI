@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: mub_routing_db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - routeplanner-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: mub_routing_pgadmin
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "8080:80"
+    networks:
+      - routeplanner-network
+    depends_on:
+      - db
+
+networks:
+  routeplanner-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
