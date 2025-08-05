@@ -21,6 +21,7 @@ import {
 } from "@/lib/mapbox/utils";
 import { LocationMarker } from "../location-marker";
 import { LocationPopup } from "../location-popup";
+import SearchForm from "../new-place/SearchForm";
 
 export default function MapSearch() {
     const { map } = useMap();
@@ -126,7 +127,7 @@ export default function MapSearch() {
     return (
         <>
             <section className="absolute top-4 left-1/2 sm:left-4 z-10 w-[90vw] sm:w-[350px] -translate-x-1/2 sm:translate-x-0 rounded-lg shadow-lg">
-                <Command className="rounded-lg">
+                {/* <Command className="rounded-lg">
                     <div
                         className={cn(
                             "w-full flex items-center justify-between px-3 gap-1",
@@ -137,6 +138,7 @@ export default function MapSearch() {
                             placeholder="Search locations..."
                             value={displayValue}
                             onValueChange={handleInputChange}
+                            onClick={() => { setIsOpen(true) }}
                             className="flex-1"
                         />
                         {displayValue && !isSearching && (
@@ -193,7 +195,9 @@ export default function MapSearch() {
                             )}
                         </CommandList>
                     )}
-                </Command>
+                </Command> */}
+
+                <SearchForm />
             </section>
 
             {selectedLocations.map((location) => (

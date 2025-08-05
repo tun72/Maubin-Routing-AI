@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Brain, Car, Clock, Footprints, MapPin, Navigation, Navigation2, Route, Search, StepForward, X, Zap } from 'lucide-react';
+import { Brain, Clock, Footprints, MapPin, Navigation, Route, Search, Zap } from 'lucide-react';
 import React from 'react'
 
 function SearchForm() {
@@ -142,7 +142,7 @@ function SearchForm() {
                 </div>
 
                 {/* Route Information */}
-                <div className={`mt-6 p-4 rounded-xl border backdrop-blur-sm transition-all duration-500 ${true
+                {/* <div className={`mt-6 p-4 rounded-xl border backdrop-blur-sm transition-all duration-500 ${true
                     ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200/50 dark:border-purple-800/50'
                     : 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200/50 dark:border-green-800/50'
                     }`}>
@@ -174,17 +174,17 @@ function SearchForm() {
                         <div className="flex items-center space-x-2">
                             <Footprints className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                             <span className="text-sm text-gray-700 dark:text-gray-300">
-                                {/* {routeInfo.distance} */} 500km
+                                500km
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
                             <Clock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                             <span className="text-sm text-gray-700 dark:text-gray-300">
-                                {/* {routeInfo.duration} */} 100mins
+                                100mins
                             </span>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>
         </div>
     )

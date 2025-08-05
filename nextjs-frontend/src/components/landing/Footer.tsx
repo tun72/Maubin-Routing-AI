@@ -2,6 +2,7 @@
 
 import { themeClasses } from '@/config/site';
 import { Github, Linkedin, Navigation, Twitter, } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react'
@@ -10,6 +11,8 @@ function Footer() {
 
     const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const t = useTranslations('HomePage');
+
     useEffect(() => {
         setMounted(true);
     }, []);
@@ -29,11 +32,11 @@ function Footer() {
                                 <Navigation className="w-6 h-6 text-white" />
                             </div>
                             <span className={`text-xl font-bold bg-gradient-to-r ${customTheme.accent} bg-clip-text text-transparent`}>
-                                Maubin AI
+                                {t("title")}
                             </span>
                         </div>
                         <p className={`${customTheme.textMuted} max-w-md mb-4`}>
-                            Experience the future of navigation. Find the fastest, most efficient path to any destination with AI that adapts to real-time conditions
+                            {t("about_us_paragraph")}
                         </p>
                         <div className="flex items-center gap-4">
                             <Link href="#" className={`${customTheme.textSecondary} hover:${customTheme.text} transition-colors`}>

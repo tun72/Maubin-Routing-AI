@@ -1,4 +1,4 @@
-import { Brain, MapPin, Target, Zap } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import React from 'react'
 
 function Map() {
