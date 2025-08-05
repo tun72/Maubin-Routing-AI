@@ -2,12 +2,15 @@
 
 import { themeClasses } from '@/config/site';
 import { Brain, Route, Zap } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import React, { useEffect, useState } from 'react'
 
 function FeaturesSection() {
     const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const t = useTranslations('HomePage');
+
     useEffect(() => {
         setMounted(true);
     }, []);
@@ -21,25 +24,25 @@ function FeaturesSection() {
     const features = [
         {
             icon: <Brain className="w-6 h-6 text-white" />,
-            title: "AI-Powered Pathfinding",
+            title: t("blog_Title"),
             description:
-                "Advanced algorithms find the optimal route by analyzing millions of data points in real-time.",
+                t("blog_Paragraph"),
             gradientDark: "from-cyan-500 to-blue-600",
             gradientLight: "from-blue-500 to-indigo-600",
         },
         {
             icon: <Route className="w-6 h-6 text-white" />,
-            title: "Dynamic Route Adjustment",
+            title: t("blog_Title_2"),
             description:
-                "Automatically re-routes you based on live traffic, accidents, and road closures to save you time.",
+                t("blog_Paragraph_2"),
             gradientDark: "from-purple-500 to-pink-600",
             gradientLight: "from-purple-500 to-pink-500",
         },
         {
             icon: <Zap className="w-6 h-6 text-white" />,
-            title: "Instant Calculation",
+            title: t("blog_Title_3"),
             description:
-                "Our optimized cloud engine calculates even the most complex routes in a fraction of a second.",
+                t("blog_Paragraph_3"),
             gradientDark: "",
             gradientLight: "from-emerald-500 to-teal-500",
         },
@@ -49,9 +52,9 @@ function FeaturesSection() {
         <section id="features" className="relative py-20 md:py-32">
             <div className="mx-auto max-w-7xl px-6">
                 <div className="text-center max-w-3xl mx-auto mb-16">
-                    <h2 className="text-4xl font-bold">Why Maubin-AI is Different</h2>
+                    <h2 className="text-4xl font-bold">{t("subtitle_1")}</h2>
                     <p className={`mt-4 text-lg ${customTheme.textSecondary}`}>
-                        Our system does not just find routes—it understands the journey, predicts patterns, and optimizes for what matters most to you.
+                        {t("paragraph_1")}
                     </p>
                 </div>
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
