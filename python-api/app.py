@@ -7,20 +7,22 @@ from geopy.distance import great_circle
 import os
 import uuid
 import math
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
-app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET', 'super-secret-key')
+app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET')
 jwt = JWTManager(app)
+load_dotenv()
 
 # Database connection function
 def get_db_connection():
     conn = psycopg2.connect(
-        host=os.environ.get('DB_HOST', 'localhost'),
-        database=os.environ.get('DB_NAME', 'mub_route_planner'),
-        user=os.environ.get('DB_USER', 'route_admin'),
-        password=os.environ.get('DB_PASSWORD', 'Maubin@10181'),
-        port=os.environ.get('DB_PORT', '5432')
+        host=os.environ.get('DB_HOST'),
+        database=os.environ.get('DB_NAME'),
+        user=os.environ.get('DB_USER'),
+        password=os.environ.get('DB_PASSWORD'),
+        port=os.environ.get('DB_PORT')
     )
     return conn
 
@@ -255,7 +257,7 @@ def login():
 @app.route('/routes', methods=['POST'])
 @jwt_required()
 def plan_route():
-    user_id = int(get_jwt_identity())
+    user_id = get_jwt_identity()
     data = request.get_json()
     
     start_lon = data.get('start_lon')
@@ -361,7 +363,7 @@ def plan_route():
 @app.route('/history', methods=['GET'])
 @jwt_required()
 def get_history():
-    user_id = int(get_jwt_identity())
+    user_id = get_jwt_identity()
     
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -400,7 +402,7 @@ def get_history():
 @app.route('/locations', methods=['POST'])
 @jwt_required()
 def save_location():
-    user_id = int(get_jwt_identity())
+    user_id = get_jwt_identity()
     data = request.get_json()
     
     name = data.get('name')
@@ -446,7 +448,7 @@ def save_location():
 @app.route('/locations', methods=['GET'])
 @jwt_required()
 def get_saved_locations():
-    user_id = int(get_jwt_identity()) 
+    user_id = get_jwt_identity() 
     
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -486,7 +488,7 @@ def admin_required(fn):
     @wraps(fn)
     @jwt_required()
     def wrapper(*args, **kwargs):
-        user_id = int(get_jwt_identity())
+        user_id = get_jwt_identity()
         conn = get_db_connection()
         cur = conn.cursor()
         try:
@@ -549,8 +551,8 @@ def get_all_locations():
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     try:
         cur.execute(
-            "SELECT id, name, address, type, "
-            "ST_X(geom::geometry) AS lon, ST_Y(geom::geometry) AS lat, popularity "
+            "SELECT id, burmese_name, english_name, address, type, "
+            "ST_X(geom::geometry) AS lon, ST_Y(geom::geometry) AS lat "
             "FROM locations;"
         )
         locations = cur.fetchall()

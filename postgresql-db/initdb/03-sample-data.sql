@@ -11,20 +11,20 @@ INSERT INTO locations (burmese_name, english_name, address, geom, type) VALUES
 ('ည‌ဈေးတန်း', 'Downtown Diner', '45 Food Street', ST_GeogFromText('POINT(-73.9653 40.7824)'), 'restaurant');
 
 -- Sample roads
-INSERT INTO roads (geom, length_m, max_speed_kmh, road_type, name) VALUES
+INSERT INTO roads (burmese_name, english_name, geom, length_m, road_type) VALUES
 (
+  'ပန်းခြံလမ်း',
+  'Park Avenue',
   ST_GeogFromText('LINESTRING(-73.9688 40.7851, -73.9722 40.7798)'),
   850,
-  50,
-  'residential',
-  'Park Avenue'
+  'residential'
 ),
 (
+  'အစားအသောက်တန်း',
+  'Food Street',
   ST_GeogFromText('LINESTRING(-73.9653 40.7824, -73.9688 40.7851)'),
   600,
-  40,
-  'local',
-  'Food Street'
+  'local'
 );
 
 -- Sample route
@@ -70,6 +70,6 @@ INSERT INTO user_saved_locations (
   custom_name
 ) VALUES (
   (SELECT id FROM users WHERE username = 'traveler_john'),
-  (SELECT id FROM locations WHERE name = 'Central Park'),
+  (SELECT id FROM locations WHERE english_name = 'Central Park'),
   'Favorite Park'
 );

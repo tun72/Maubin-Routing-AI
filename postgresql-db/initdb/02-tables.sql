@@ -21,21 +21,20 @@ CREATE TABLE locations (
         'restaurant', 'hospital', 'gas_station', 'landmark', 
         'intersection', 'park', 'school', 'store', 'pagoda', 'other'
     )),
-    popularity INT DEFAULT 0,
     CONSTRAINT unique_location_point UNIQUE (geom)
 );
 
 -- 3. ROAD NETWORK
 CREATE TABLE roads (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    burmese_name VARCHAR(255) NOT NULL,
+    english_name VARCHAR(255) NOT NULL,
     geom GEOGRAPHY(LINESTRING, 4326) NOT NULL,
     length_m FLOAT NOT NULL CHECK (length_m > 0),
-    max_speed_kmh INT NOT NULL CHECK (max_speed_kmh BETWEEN 5 AND 130),
     road_type VARCHAR(20) CHECK(road_type IN (
         'highway', 'local', 'residential', 'service', 'pedestrian'
     )),
     is_oneway BOOLEAN DEFAULT false,
-    name VARCHAR(255),
     CONSTRAINT valid_linestring CHECK (ST_GeometryType(geom::geometry) = 'ST_LineString')
 );
 
