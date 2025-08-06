@@ -10,15 +10,6 @@ CREATE TABLE IF NOT EXISTS users (
     preferences JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE TABLE user_refresh_tokens (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    refresh_token TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    expires_at TIMESTAMP NOT NULL,
-    revoked BOOLEAN DEFAULT false
-);
-
 -- 2. LOCATIONS (POIs)
 CREATE TABLE IF NOT EXISTS locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -101,5 +92,3 @@ CREATE INDEX IF NOT EXISTS idx_routes_end ON routes USING GIST (end_loc);
 CREATE INDEX IF NOT EXISTS idx_history_user ON user_route_history (user_id);
 CREATE INDEX IF NOT EXISTS idx_history_route ON user_route_history (route_id);
 CREATE INDEX IF NOT EXISTS idx_saved_locations_user ON user_saved_locations (user_id);
-CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON user_refresh_tokens (user_id);
-CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON user_refresh_tokens (refresh_token);

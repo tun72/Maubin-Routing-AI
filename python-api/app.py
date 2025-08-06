@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import psycopg2
 import psycopg2.extras
 from geopy.distance import great_circle
@@ -16,6 +16,7 @@ app = Flask(__name__)
 load_dotenv()
 CORS(app, origins=os.environ.get('ORIGIN').split(","), supports_credentials=True)
 app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET')
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(days=7)
 jwt = JWTManager(app)
 
 # Database connection function
@@ -217,7 +218,7 @@ def register():
     password = data.get('password')
     
     if not username or not email or not password:
-        return jsonify({"msg": "Missing required fields"}), 400
+        return jsonify({"is_success": False ,"msg": "Missing required fields"}), 400
     
     conn = get_db_connection()
     cur = conn.cursor()
@@ -230,9 +231,9 @@ def register():
         )
         user_id = cur.fetchone()[0]
         conn.commit()
-        return jsonify({"id": user_id, "msg": "User created successfully"}), 201
+        return jsonify({"id": user_id, "is_success": True, "msg": "User created successfully"}), 201
     except psycopg2.errors.UniqueViolation:
-        return jsonify({"msg": "Username or email already exists"}), 400
+        return jsonify({"is_success": False, "msg": "Username or email already exists"}), 400
     finally:
         cur.close()
         conn.close()
@@ -266,85 +267,23 @@ def login():
 
     if user:
         access_token = create_access_token(identity=str(user['id']))
-        refresh_token = create_refresh_token(identity=str(user['id']))
         
-        expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=7)
-        cur.execute(
-            "INSERT INTO user_refresh_tokens (user_id, refresh_token, expires_at) VALUES (%s, %s, %s);",
-            (user['id'], refresh_token, expires_at)
-        )
-        conn.commit()
         cur.close()
         conn.close()
         
         user_dict = dict(user)
         user_dict.pop('password_hash', None)
-        return jsonify(access_token=access_token, refresh_token=refresh_token, user=user_dict), 200
+        return jsonify({"is_success": True, "access_token": access_token, "user": user_dict}), 200
 
     cur.close()
     conn.close()
-    return jsonify({"msg": "Invalid credentials"}), 401
-
-# Refresh Token
-@app.route('/refresh-token', methods=['POST'])
-@jwt_required(refresh=True)
-def refresh_token():
-    current_user = get_jwt_identity()
-    jti = get_jwt()["jti"]
-    refresh_token = request.json.get("refresh_token")
-    if not refresh_token:
-        return jsonify({"msg": "Missing refresh token"}), 400
-
-    # Check if refresh token is valid and not revoked
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT revoked, expires_at FROM user_refresh_tokens WHERE refresh_token = %s AND user_id = %s;",
-        (refresh_token, current_user)
-    )
-    row = cur.fetchone()
-    if not row:
-        cur.close()
-        conn.close()
-        return jsonify({"msg": "Invalid refresh token"}), 401
-    revoked, expires_at = row
-    if revoked or expires_at < datetime.datetime.utcnow():
-        cur.close()
-        conn.close()
-        return jsonify({"msg": "Refresh token expired or revoked"}), 401
-
-    # Issue new access token
-    access_token = create_access_token(identity=current_user)
-    cur.close()
-    conn.close()
-    return jsonify(access_token=access_token), 200
+    return jsonify({"is_success": False, "msg": "Invalid credentials"}), 401
 
 # User Logout
 @app.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():
-    data = request.get_json()
-    refresh_token = data.get('refresh_token')
-    if not refresh_token:
-        return jsonify({"msg": "Missing refresh_token in request body"}), 400
-
-    user_id = get_jwt_identity()
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute(
-            "UPDATE user_refresh_tokens SET revoked = TRUE WHERE user_id = %s AND refresh_token = %s;",
-            (user_id, refresh_token)
-        )
-        conn.commit()
-        return jsonify({"msg": "Successfully logged out"}), 200
-    except Exception as e:
-        conn.rollback()
-        app.logger.error(f"Logout failed: {e}")
-        return jsonify({"msg": "Logout failed"}), 500
-    finally:
-        cur.close()
-        conn.close()
+    return jsonify({"is_success": True, "msg": "Successfully logged out"}), 200
 
 # === USER ===
 
@@ -362,13 +301,13 @@ def get_profile():
         user = cur.fetchone()
         
         if not user:
-            return jsonify({"msg": "User not found"}), 404
-            
+            return jsonify({"is_success": False, "msg": "User not found"}), 404
+
         user_dict = dict(user)
         user_dict['last_login'] = user_dict['last_login'].isoformat() if user_dict['last_login'] else None
-        
-        return jsonify(user_dict), 200
-        
+
+        return jsonify({"is_success": True, "user": user_dict}), 200
+
     finally:
         cur.close()
         conn.close()
@@ -392,12 +331,12 @@ def update_profile():
             (username, email, user_id)
         )
         conn.commit()
-        return jsonify({"msg": "Profile updated successfully"}), 200
+        return jsonify({"is_success": True, "msg": "Profile updated successfully"}), 200
 
     except Exception as e:
         conn.rollback()
         app.logger.error(f"Database error: {str(e)}")
-        return jsonify({"msg": "Failed to update profile"}), 500
+        return jsonify({"is_success": False, "msg": "Failed to update profile"}), 500
 
     finally:
         cur.close()
@@ -417,18 +356,19 @@ def plan_route():
     optimization = data.get('optimization', 'shortest')
     
     if None in (start_lon, start_lat, end_lon, end_lat):
-        return jsonify({"msg": "Missing coordinates"}), 400
-    
+        return jsonify({"is_success": False, "msg": "Missing coordinates"}), 400
+
     try:
         start_point = (float(start_lon), float(start_lat))
         end_point = (float(end_lon), float(end_lat))
     except ValueError:
-        return jsonify({"msg": "Invalid coordinates"}), 400
+        return jsonify({"is_success": False, "msg": "Invalid coordinates"}), 400
     
     path_coords, total_distance, road_segments = road_graph.dijkstra(start_point, end_point)
 
     if not path_coords or len(path_coords) < 2:
         return jsonify({
+            "is_success": False,
             "msg": "No valid route found between the points",
             "suggestion": "Try closer points or check road network data"
         }), 404
@@ -544,6 +484,7 @@ def plan_route():
         conn.commit()
 
         response = {
+            "is_success": True,
             "route_id": route_id,
             "distance": total_distance,
             "estimated_time": estimated_time,
@@ -568,7 +509,7 @@ def plan_route():
     except Exception as e:
         conn.rollback()
         app.logger.error(f"Database error: {str(e)}")
-        return jsonify({"msg": "Error saving route", "error": str(e)}), 500
+        return jsonify({"is_success": False, "msg": "Error saving route", "error": str(e)}), 500
     finally:
         cur.close()
         conn.close()
@@ -1013,17 +954,17 @@ def update_road(road_id):
         cur.execute(query, tuple(params))
         updated = cur.fetchone()
         if not updated:
-            return jsonify({"msg": "Road not found"}), 404
-            
+            return jsonify({"is_success": False, "msg": "Road not found"}), 404
+
         conn.commit()
         
         if 'coordinates' in data:
             road_graph.build_graph()
             
-        return jsonify({"msg": "Road updated"}), 200
+        return jsonify({"is_success": True, "msg": "Road updated"}), 200
     except Exception as e:
         conn.rollback()
-        return jsonify({"msg": str(e)}), 500
+        return jsonify({"is_success": False, "msg": str(e)}), 500
     finally:
         cur.close()
         conn.close()
@@ -1039,16 +980,17 @@ def delete_road(road_id):
         cur.execute("DELETE FROM roads WHERE id = %s RETURNING id;", (road_id_str,))
         deleted = cur.fetchone()
         if not deleted:
-            return jsonify({"msg": "Road not found"}), 404
-            
+            return jsonify({"is_success": False,"msg": "Road not found"}), 404
+
         conn.commit()
         
         road_graph.build_graph()
-        
-        return jsonify({"msg": "Road deleted"}), 200
+
+        return jsonify({"is_success": True,"msg": "Road deleted"}), 200
     except psycopg2.errors.ForeignKeyViolation:
         conn.rollback()
         return jsonify({
+            "is_success": False,
             "msg": "Cannot delete road referenced by traffic or routes",
             "solution": "Delete dependent records first"
         }), 400
@@ -1072,10 +1014,10 @@ def make_user_admin(user_id):
         )
         updated = cur.fetchone()
         if not updated:
-            return jsonify({"msg": "User not found"}), 404
+            return jsonify({"is_success": False,"msg": "User not found"}), 404
             
         conn.commit()
-        return jsonify({"msg": "User granted admin privileges"}), 200
+        return jsonify({"is_success": True,"msg": "User granted admin privileges"}), 200
     finally:
         cur.close()
         conn.close()
@@ -1087,12 +1029,12 @@ def health_check():
 
 @app.errorhandler(404)
 def not_found_error(error):
-    return jsonify({"msg": "Resource not found"}), 404
+    return jsonify({"is_success": False,"msg": "Resource not found"}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
     app.logger.error(f"Server error: {str(error)}")
-    return jsonify({"msg": "Internal server error"}), 500
+    return jsonify({"is_success": False,"msg": "Internal server error"}), 500
     
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
