@@ -28,7 +28,7 @@ CREATE TABLE locations (
     geom GEOGRAPHY(POINT, 4326) NOT NULL,
     type VARCHAR(50) CHECK(type IN (
         'restaurant', 'hospital', 'gas_station', 'landmark', 
-        'intersection', 'park', 'school', 'store', 'pagoda', 'other'
+        'intersection', 'park', 'school', 'store', 'pagoda', 'bridge', 'other'
     )),
     CONSTRAINT unique_location_point UNIQUE (geom)
 );

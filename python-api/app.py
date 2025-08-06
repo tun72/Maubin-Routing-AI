@@ -7,6 +7,7 @@ from geopy.distance import great_circle
 import os
 import uuid
 import math
+import json
 from dotenv import load_dotenv
 import datetime
 from functools import wraps
@@ -56,46 +57,49 @@ class RoadGraph:
             coords_str = wkt.replace('LINESTRING(', '').replace(')', '')
             coords_list = [tuple(map(float, c.split())) for c in coords_str.split(',')]
             
-            # Add start and end nodes
-            start_node = coords_list[0]
-            end_node = coords_list[-1]
+            # Add all nodes along the road
+            for i, coord in enumerate(coords_list):
+                if coord not in self.nodes:
+                    self.nodes[coord] = []
             
-            if start_node not in self.nodes:
-                self.nodes[start_node] = []
-            if end_node not in self.nodes:
-                self.nodes[end_node] = []
+            # Add edges between consecutive points
+            for i in range(len(coords_list) - 1):
+                start_node = coords_list[i]
+                end_node = coords_list[i + 1]
                 
-            # Add edge from start to end
-            self.nodes[start_node].append(end_node)
-            self.edges[(start_node, end_node)] = {
-                'id': road_id,
-                'length': length,
-                'geometry': coords_list
-            }
-            
-            # Add reverse edge if not one-way
-            if not is_oneway:
-                self.nodes[end_node].append(start_node)
-                self.edges[(end_node, start_node)] = {
+                # Calculate segment length
+                segment_length = calculate_distance(start_node, end_node)
+                
+                # Add forward edge
+                self.nodes[start_node].append(end_node)
+                self.edges[(start_node, end_node)] = {
                     'id': road_id,
-                    'length': length,
-                    'geometry': list(reversed(coords_list))
+                    'length': segment_length,
+                    'geometry': [start_node, end_node]
                 }
+                
+                # Add reverse edge if not one-way
+                if not is_oneway:
+                    self.nodes[end_node].append(start_node)
+                    self.edges[(end_node, start_node)] = {
+                        'id': road_id,
+                        'length': segment_length,
+                        'geometry': [end_node, start_node]
+                    }
         
-            app.logger.info(f"Road graph built with {len(self.nodes)} nodes and {len(self.edges)} edges")
+        app.logger.info(f"Road graph built with {len(self.nodes)} nodes and {len(self.edges)} edges")
 
-            # Validate graph connectivity
-            if not self.nodes:
-                app.logger.error("Road graph is empty!")
-            elif not self.edges:
-                app.logger.error("No edges in road graph!")
-
+        # Validate graph connectivity
+        if not self.nodes:
+            app.logger.error("Road graph is empty!")
+        elif not self.edges:
+            app.logger.error("No edges in road graph!")
         
         cur.close()
         conn.close()
 
     def find_nearest_node(self, point):
-        max_distance = 500 
+        max_distance = 1000  # Increased from 500m to 1000m
         nearest_node = None
         min_distance = float('inf')
         
@@ -106,9 +110,10 @@ class RoadGraph:
                 nearest_node = node
                 
         if min_distance > max_distance:
-            app.logger.warning(f"No nearby node found within {max_distance}m")
+            app.logger.warning(f"No nearby node found within {max_distance}m for point {point}")
             return None
 
+        app.logger.info(f"Found nearest node at {min_distance:.2f}m for point {point}")
         return nearest_node
     
     def dijkstra(self, start, end):
@@ -122,7 +127,7 @@ class RoadGraph:
         # Check if start/end nodes are valid
         if start_node is None or end_node is None:
             app.logger.warning(f"Couldn't find nearest node: start={start}, end={end}")
-            return None, 0
+            return None, 0, []
         
         # Dijkstra's algorithm
         distances = {node: float('inf') for node in self.nodes}
@@ -156,8 +161,8 @@ class RoadGraph:
         
         # Check if path was found
         if previous_nodes.get(end_node) is None:
-            app.logger.warning(f"No path found: start={start_point} end={end_point}")
-            return None, 0
+            app.logger.warning(f"No path found: start={start} end={end}")
+            return None, 0, []
         
         # Reconstruct path
         path = []
@@ -166,20 +171,28 @@ class RoadGraph:
             path.insert(0, current)
             current = previous_nodes.get(current)
         
-        # Convert path to LineString
+        # Convert path to LineString and collect road info
         line_coords = []
+        road_segments = []
         for i in range(len(path) - 1):
             edge_key = (path[i], path[i+1])
             if edge_key in self.edges:
+                edge = self.edges[edge_key]
                 # For first segment, include all points
                 if i == 0:
-                    line_coords.extend(self.edges[edge_key]['geometry'])
+                    line_coords.extend(edge['geometry'])
                 else:
                     # Skip first point (duplicate of previous segment's last point)
-                    line_coords.extend(self.edges[edge_key]['geometry'][1:])
+                    line_coords.extend(edge['geometry'][1:])
+                
+                # Add road segment info
+                road_segments.append({
+                    'road_id': edge['id'],
+                    'length': edge['length']
+                })
         
         total_distance = distances[end_node]
-        return line_coords, total_distance
+        return line_coords, total_distance, road_segments
 
 # Initialize the graph when the app starts
 road_graph = RoadGraph()
@@ -200,7 +213,7 @@ def handle_options(path):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-# === USER AUTHENTICATION ===
+# === AUTHENTICATION ===
 
 # User Registration
 @app.route('/register', methods=['POST'])
@@ -340,6 +353,8 @@ def logout():
         cur.close()
         conn.close()
 
+# === USER ===
+
 # User Profile
 @app.route('/profile', methods=['GET'])
 @jwt_required()
@@ -395,8 +410,6 @@ def update_profile():
         cur.close()
         conn.close()
 
-# === ROUTE PLANNING ===
-
 # Route Planning
 @app.route('/routes', methods=['POST'])
 @jwt_required()
@@ -421,7 +434,7 @@ def plan_route():
         return jsonify({"msg": "Invalid coordinates"}), 400
     
     # Calculate route
-    path_coords, total_distance = road_graph.dijkstra(start_point, end_point)
+    path_coords, total_distance, road_segments = road_graph.dijkstra(start_point, end_point)
     
     # Validate path coordinates
     if not path_coords or len(path_coords) < 2:
@@ -429,6 +442,35 @@ def plan_route():
             "msg": "No valid route found between the points",
             "suggestion": "Try closer points or check road network data"
         }), 404
+    
+    # Get road names for the segments
+    road_names = []
+    if road_segments:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        try:
+            road_ids = [str(segment['road_id']) for segment in road_segments]
+            if road_ids:
+                cur.execute(
+                    "SELECT id, burmese_name, english_name FROM roads WHERE id::text = ANY(%s);",
+                    (road_ids,)
+                )
+                road_data = cur.fetchall()
+                road_lookup = {str(road['id']): road for road in road_data}
+                
+                for segment in road_segments:
+                    road_id = str(segment['road_id'])
+                    if road_id in road_lookup:
+                        road = road_lookup[road_id]
+                        road_names.append({
+                            'road_id': road_id,
+                            'burmese_name': road['burmese_name'],
+                            'english_name': road['english_name'],
+                            'length': segment['length']
+                        })
+        finally:
+            cur.close()
+            conn.close()
     
     # Convert to GeoJSON format
     geojson_route = {
@@ -492,7 +534,8 @@ def plan_route():
             "route_id": route_id,
             "distance": total_distance,
             "estimated_time": estimated_time,
-            "route": geojson_route
+            "route": geojson_route,
+            "road_names": road_names
         }), 200
         
     except Exception as e:
@@ -792,42 +835,52 @@ def delete_location(location_id):
 @admin_required
 def create_road():
     data = request.get_json()
-    name = data.get('name')
-    road_type = data.get('road_type')
-    max_speed = data.get('max_speed_kmh')
-    is_oneway = data.get('is_oneway', False)
+    burmese_name = data.get('burmese_name')
+    english_name = data.get('english_name')
     coordinates = data.get('coordinates')  # [[lon, lat], [lon, lat], ...]
+    length_m = data.get('length_m', 0)
+    road_type = data.get('road_type')
+    is_oneway = data.get('is_oneway', False)
     
-    if not coordinates or len(coordinates) < 2:
-        return jsonify({"msg": "At least 2 points required"}), 400
-    
-    # Create LineString WKT
-    wkt_coords = ", ".join([f"{point[0]} {point[1]}" for point in coordinates])
+
+    # Robust validation for coordinates
+    if not isinstance(coordinates, list) or len(coordinates) < 2:
+        return jsonify({"msg": "At least 2 coordinate points required (list of [lon, lat])"}), 400
+
+    validated_coords = []
+    for idx, point in enumerate(coordinates):
+        if not isinstance(point, (list, tuple)) or len(point) != 2:
+            return jsonify({"msg": f"Coordinate at index {idx} must be a list/tuple of [lon, lat], got: {point}"}), 400
+        try:
+            lon = float(point[0])
+            lat = float(point[1])
+        except (ValueError, TypeError):
+            return jsonify({"msg": f"Coordinate at index {idx} contains non-numeric values: {point}"}), 400
+        validated_coords.append((lon, lat))
+
+    if len(validated_coords) < 2:
+        return jsonify({"msg": "At least 2 valid coordinate points required"}), 400
+
+    wkt_coords = ", ".join([f"{lon} {lat}" for lon, lat in validated_coords])
     wkt_linestring = f"LINESTRING({wkt_coords})"
-    
-    # Calculate length (simplified)
-    total_length = 0
-    for i in range(len(coordinates) - 1):
-        total_length += calculate_distance(coordinates[i], coordinates[i+1])
     
     conn = get_db_connection()
     cur = conn.cursor()
     try:
         cur.execute(
-            "INSERT INTO roads (geom, length_m, max_speed_kmh, road_type, is_oneway, name) "
+            "INSERT INTO roads (geom, length_m, road_type, is_oneway, burmese_name, english_name) "
             "VALUES (ST_GeogFromText(%s), %s, %s, %s, %s, %s) "
             "RETURNING id;",
-            (f"SRID=4326;{wkt_linestring}", total_length, max_speed, road_type, is_oneway, name)
+            (f"SRID=4326;{wkt_linestring}", length_m, road_type, is_oneway, burmese_name, english_name)
         )
         road_id = cur.fetchone()[0]
         conn.commit()
-        
-        # Rebuild graph since road network changed
+
         road_graph.build_graph()
-        
+
         return jsonify({
             "id": road_id,
-            "length": total_length,
+            "length": length_m,
             "msg": "Road created"
         }), 201
     except Exception as e:
@@ -845,42 +898,41 @@ def get_all_roads():
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     try:
         cur.execute(
-            "SELECT id, name, road_type, max_speed_kmh, is_oneway, length_m, "
+            "SELECT id, burmese_name, english_name, road_type, is_oneway, length_m, "
             "ST_AsGeoJSON(geom::geometry) AS geojson "
             "FROM roads;"
         )
         roads = cur.fetchall()
         
-        result = []
-        for road in roads:
-            road_dict = dict(road)
-            road_dict['geojson'] = json.loads(road['geojson'])
-            result.append(road_dict)
-            
-        return jsonify(result), 200
+        result = cur.fetchall()
+        return jsonify([dict(road) for road in roads]), 200
     finally:
         cur.close()
         conn.close()
 
 # Update Road (Admin)
-@app.route('/admin/roads/<int:road_id>', methods=['PUT'])
+@app.route('/admin/roads/<uuid:road_id>', methods=['PUT'])
 @admin_required
 def update_road(road_id):
     data = request.get_json()
     updates = []
     params = []
-    
-    if 'name' in data:
-        updates.append("name = %s")
-        params.append(data['name'])
-    
+
+    if 'burmese_name' in data:
+        updates.append("burmese_name = %s")
+        params.append(data['burmese_name'])
+
+    if 'english_name' in data:
+        updates.append("english_name = %s")
+        params.append(data['english_name'])
+
+    if 'length_m' in data:
+        updates.append("length_m = %s")
+        params.append(data['length_m'])
+
     if 'road_type' in data:
         updates.append("road_type = %s")
         params.append(data['road_type'])
-    
-    if 'max_speed_kmh' in data:
-        updates.append("max_speed_kmh = %s")
-        params.append(data['max_speed_kmh'])
     
     if 'is_oneway' in data:
         updates.append("is_oneway = %s")
@@ -894,18 +946,11 @@ def update_road(road_id):
         wkt_linestring = f"LINESTRING({wkt_coords})"
         updates.append("geom = ST_GeogFromText(%s)")
         params.append(f"SRID=4326;{wkt_linestring}")
-        
-        # Recalculate length
-        total_length = 0
-        for i in range(len(data['coordinates']) - 1):
-            total_length += calculate_distance(data['coordinates'][i], data['coordinates'][i+1])
-        updates.append("length_m = %s")
-        params.append(total_length)
     
     if not updates:
         return jsonify({"msg": "No updates provided"}), 400
     
-    params.append(road_id)
+    params.append(str(road_id))
     
     conn = get_db_connection()
     cur = conn.cursor()
@@ -931,20 +976,20 @@ def update_road(road_id):
         conn.close()
 
 # Delete Road (Admin)
-@app.route('/admin/roads/<int:road_id>', methods=['DELETE'])
+@app.route('/admin/roads/<uuid:road_id>', methods=['DELETE'])
 @admin_required
 def delete_road(road_id):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("DELETE FROM roads WHERE id = %s RETURNING id;", (road_id,))
+        road_id_str = str(road_id)
+        cur.execute("DELETE FROM roads WHERE id = %s RETURNING id;", (road_id_str,))
         deleted = cur.fetchone()
         if not deleted:
             return jsonify({"msg": "Road not found"}), 404
             
         conn.commit()
         
-        # Rebuild graph since road network changed
         road_graph.build_graph()
         
         return jsonify({"msg": "Road deleted"}), 200
@@ -961,15 +1006,16 @@ def delete_road(road_id):
 # === ADMIN USER MANAGEMENT ===
 
 # Make User Admin
-@app.route('/admin/users/<int:user_id>/make-admin', methods=['POST'])
+@app.route('/admin/users/<uuid:user_id>/make-admin', methods=['POST'])
 @admin_required
 def make_user_admin(user_id):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        user_id_str = str(user_id)
         cur.execute(
             "UPDATE users SET is_admin = TRUE WHERE id = %s RETURNING id;",
-            (user_id,)
+            (user_id_str,)
         )
         updated = cur.fetchone()
         if not updated:
