@@ -1,5 +1,5 @@
 -- 1. ENHANCED USERS TABLE
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE user_refresh_tokens (
 );
 
 -- 2. LOCATIONS (POIs)
-CREATE TABLE locations (
+CREATE TABLE IF NOT EXISTS locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     burmese_name VARCHAR(255) NOT NULL,
     english_name VARCHAR(255) NOT NULL,
@@ -28,18 +28,18 @@ CREATE TABLE locations (
     geom GEOGRAPHY(POINT, 4326) NOT NULL,
     type VARCHAR(50) CHECK(type IN (
         'restaurant', 'hospital', 'gas_station', 'landmark', 
-        'intersection', 'park', 'school', 'store', 'pagoda', 'bridge', 'other'
+        'intersection', 'park', 'school', 'store', 'pagoda', 'other'
     )),
     CONSTRAINT unique_location_point UNIQUE (geom)
 );
 
 -- 3. ROAD NETWORK
-CREATE TABLE roads (
+CREATE TABLE IF NOT EXISTS roads (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     burmese_name VARCHAR(255) NOT NULL,
     english_name VARCHAR(255) NOT NULL,
     geom GEOGRAPHY(LINESTRING, 4326) NOT NULL,
-    length_m FLOAT NOT NULL CHECK (length_m > 0),
+    length_m FLOAT[] NOT NULL,
     road_type VARCHAR(20) CHECK(road_type IN (
         'highway', 'local', 'residential', 'service', 'pedestrian'
     )),
@@ -48,7 +48,7 @@ CREATE TABLE roads (
 );
 
 -- 4. ROUTE REQUESTS
-CREATE TABLE routes (
+CREATE TABLE IF NOT EXISTS routes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     start_loc GEOGRAPHY(POINT, 4326) NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE routes (
 );
 
 -- 5. USER ROUTE HISTORY
-CREATE TABLE user_route_history (
+CREATE TABLE IF NOT EXISTS user_route_history (
     history_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     route_id UUID NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
@@ -82,7 +82,7 @@ CREATE TABLE user_route_history (
 );
 
 -- 6. USER SAVED LOCATIONS
-CREATE TABLE user_saved_locations (
+CREATE TABLE IF NOT EXISTS user_saved_locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     location_id UUID REFERENCES locations(id) ON DELETE SET NULL,
@@ -91,15 +91,15 @@ CREATE TABLE user_saved_locations (
 );
 
 -- INDEXES
-CREATE INDEX idx_users_email ON users (email);
-CREATE INDEX idx_users_username ON users (username);
-CREATE INDEX idx_refresh_tokens_user ON user_refresh_tokens (user_id);
-CREATE INDEX idx_refresh_tokens_token ON user_refresh_tokens (refresh_token);
-CREATE INDEX idx_locations_geom ON locations USING GIST (geom);
-CREATE INDEX idx_roads_geom ON roads USING GIST (geom);
-CREATE INDEX idx_routes_geom ON routes USING GIST (geom);
-CREATE INDEX idx_routes_start ON routes USING GIST (start_loc);
-CREATE INDEX idx_routes_end ON routes USING GIST (end_loc);
-CREATE INDEX idx_history_user ON user_route_history (user_id);
-CREATE INDEX idx_history_route ON user_route_history (route_id);
-CREATE INDEX idx_saved_locations_user ON user_saved_locations (user_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
+CREATE INDEX IF NOT EXISTS idx_locations_geom ON locations USING GIST (geom);
+CREATE INDEX IF NOT EXISTS idx_roads_geom ON roads USING GIST (geom);
+CREATE INDEX IF NOT EXISTS idx_routes_geom ON routes USING GIST (geom);
+CREATE INDEX IF NOT EXISTS idx_routes_start ON routes USING GIST (start_loc);
+CREATE INDEX IF NOT EXISTS idx_routes_end ON routes USING GIST (end_loc);
+CREATE INDEX IF NOT EXISTS idx_history_user ON user_route_history (user_id);
+CREATE INDEX IF NOT EXISTS idx_history_route ON user_route_history (route_id);
+CREATE INDEX IF NOT EXISTS idx_saved_locations_user ON user_saved_locations (user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON user_refresh_tokens (user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON user_refresh_tokens (refresh_token);
