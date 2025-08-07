@@ -1,213 +1,300 @@
-# Maubin Routing AI - Python API
+# Maubin Routing AI - Backend API
 
-A Flask-based REST API for the Maubin Routing AI system with PostgreSQL and PostGIS spatial database support.
+A Flask-based REST API for route planning and location management in Maubin, Myanmar. Features JWT authentication, spatial data processing with PostGIS, and efficient route calculation using Dijkstra's algorithm.
+
+## Tech Stack
+
+- **Backend**: Flask (Python)
+- **Database**: PostgreSQL with PostGIS extension
+- **Authentication**: JWT (Access & Refresh Tokens)
+- **Deployment**: Render/Railway compatible
+- **CORS**: Configured for frontend integration
 
 ## Features
 
-- **Spatial Database**: PostgreSQL with PostGIS extension for geographic data
-- **Location Management**: Points of Interest (POIs) with spatial queries
-- **Road Network**: Road segments with geometry and traffic data
-- **Real-time Traffic**: Traffic conditions and congestion monitoring
-- **AI Routing**: Route optimization with multiple algorithms
-- **User Management**: User accounts and route history
+### 🔐 Authentication System
 
-## Database Schema
+- User registration and login
+- JWT-based authentication with refresh tokens
+- Role-based access control (Admin/User)
+- Secure logout with token revocation
 
-The system uses the following spatial tables:
-- **users**: User accounts
-- **locations**: Points of Interest (POIs) with geographic coordinates
-- **roads**: Road network segments with line geometry
-- **traffic**: Real-time traffic data for roads
-- **routes**: AI-generated routes with optimization parameters
+### 🗺️ Route Planning
 
-## Setup
+- Dijkstra's algorithm for shortest path calculation
+- Real-time route computation between any two points
+- Geographic distance calculations using Haversine formula
+- Road network graph optimization
 
-### 1. Prerequisites
+### 📍 Location Management
 
-- Python 3.8+
-- PostgreSQL 12+
-- PostGIS extension
+- User-specific saved locations
+- Admin CRUD operations for global locations
+- Bilingual support (Myanmar/English names)
+- PostGIS spatial indexing for performance
 
-### 2. Install PostgreSQL and PostGIS
+### 📊 User Data
 
-**Ubuntu/Debian:**
+- Personal route history tracking
+- Location favorites and custom names
+- User profile management
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.12+ (recommended for deployment compatibility)
+- PostgreSQL 14+ with PostGIS extension
+
+### Installation
+
+1. **Clone and navigate to API directory**
+
 ```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib postgis postgresql-12-postgis-3
+git clone <repository-url>
+cd python-api
 ```
 
-**macOS:**
-```bash
-brew install postgresql postgis
-```
-
-**Windows:**
-Download from https://www.postgresql.org/download/windows/
-
-### 3. Create Virtual Environment
+2. **Set up virtual environment**
 
 ```bash
 python -m venv venv
-```
 
-### 4. Activate Virtual Environment
-
-```bash
-# On Windows
+# Windows
 venv\Scripts\activate
 
-# On macOS/Linux
+# macOS/Linux
 source venv/bin/activate
 ```
 
-### 5. Install Dependencies
+3. **Install dependencies**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 6. Database Configuration
+4. **Environment configuration**
 
-Create a `.env` file in the project root:
+Create a `.env` file:
 
 ```env
-DB_HOST=localhost
+# Database (Supabase/PostgreSQL)
+DB_HOST=your-database-host
+DB_NAME=postgres
+DB_USER=your-username
+DB_PASSWORD=your-password
 DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_NAME=maubin_routing_db
-DATABASE_URL=postgresql://postgres:your_password@localhost:5432/maubin_routing_db
-SECRET_KEY=your-secret-key-here
+
+# Security
+JWT_SECRET=your-super-secret-jwt-key
+
+# Frontend CORS
+ORIGIN=http://localhost:3000,http://localhost:5173
 ```
 
-### 7. Initialize Database
-
-```bash
-python init_db.py
-```
-
-This script will:
-- Create the database if it doesn't exist
-- Install PostGIS extensions
-- Create sample data for testing
-
-### 8. Run the Application
+5. **Start development server**
 
 ```bash
 python app.py
 ```
 
-The API will be available at `http://localhost:5000`
+API runs on `http://localhost:5000`
 
-## API Endpoints
+## API Reference
 
-### Core Endpoints
-- `GET /` - Welcome message and API overview
-- `GET /health` - Health check with database status
+### Authentication Endpoints
 
-### Locations (POIs)
-- `GET /api/locations` - Get all locations or search by radius
-- `POST /api/locations` - Create new location
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/register` | Create new user account | ❌ |
+| POST | `/login` | Authenticate user | ❌ |
+| POST | `/refresh-token` | Get new access token | 🔄 Refresh |
+| POST | `/logout` | Revoke refresh token | ✅ |
 
-**Query Parameters:**
-- `type`: Filter by location type (restaurant, hospital, gas_station, landmark, other)
-- `lat`, `lng`: Center point for radius search
-- `radius`: Search radius in meters (default: 1000)
+### User Endpoints
 
-### Roads
-- `GET /api/roads` - Get all road segments
-- `POST /api/roads` - Create new road segment
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/profile` | Get user profile | ✅ |
+| PUT | `/profile` | Update user profile | ✅ |
+| GET | `/history` | Get route history | ✅ |
+| GET | `/locations` | Get saved locations | ✅ |
+| POST | `/locations` | Save new location | ✅ |
 
-### Traffic
-- `GET /api/traffic` - Get traffic data
-- `POST /api/traffic` - Create new traffic data
+### Route Planning
 
-**Query Parameters:**
-- `road_id`: Filter by specific road
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/routes` | Calculate route between points | ✅ |
 
-### Routes
-- `GET /api/routes` - Get all routes
-- `POST /api/routes` - Create new route request
-- `GET /api/routes/<route_id>` - Get specific route
+### Admin Endpoints
 
-### Users
-- `GET /api/users` - Get all users
-- `POST /api/users` - Create new user
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/admin/locations` | List all locations | 👑 Admin |
+| POST | `/admin/locations` | Create location | 👑 Admin |
+| PUT | `/admin/locations/<id>` | Update location | 👑 Admin |
+| DELETE | `/admin/locations/<id>` | Delete location | 👑 Admin |
 
-## Example Usage
+## Request Examples
 
-### Create a Location
+### User Registration
 ```bash
-curl -X POST "http://localhost:5000/api/locations" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "name": "Maubin Central Market",
-       "address": "Maubin, Ayeyarwady Region, Myanmar",
-       "lat": 16.7314,
-       "lng": 95.6544,
-       "type": "landmark"
-     }'
+curl -X POST "http://localhost:5000/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "johndoe",
+    "email": "john@example.com",
+    "password": "securePassword123"
+  }'
 ```
 
-### Find Locations Near a Point
+### User Login
 ```bash
-curl "http://localhost:5000/api/locations?lat=16.7314&lng=95.6544&radius=1000"
+curl -X POST "http://localhost:5000/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "securePassword123"
+  }'
 ```
 
-### Create a Route
+### Plan Route
 ```bash
-curl -X POST "http://localhost:5000/api/routes" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "start_lat": 16.7300,
-       "start_lng": 95.6530,
-       "end_lat": 16.7320,
-       "end_lng": 95.6550,
-       "optimization_type": "fastest",
-       "avoid_tolls": false,
-       "wheelchair_accessible": false
-     }'
+curl -X POST "http://localhost:5000/routes" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -d '{
+    "start_lon": 95.6530,
+    "start_lat": 16.7300,
+    "end_lon": 95.6550,
+    "end_lat": 16.7320,
+    "start_name": "Maubin Market",
+    "end_name": "Maubin Bridge"
+  }'
 ```
 
-## Spatial Queries
+### Create Location (Admin)
+```bash
+curl -X POST "http://localhost:5000/admin/locations" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ADMIN_ACCESS_TOKEN" \
+  -d '{
+    "burmese_name": "မအူပင်ဈေး",
+    "english_name": "Maubin Central Market",
+    "address": "Maubin, Ayeyarwady Region, Myanmar",
+    "lon": 95.6544,
+    "lat": 16.7314,
+    "type": "landmark"
+  }'
+```
 
-The API supports PostGIS spatial queries:
+## Response Examples
 
-- **Radius Search**: Find locations within a specified radius
-- **Distance Calculations**: Calculate distances between points
-- **Geographic Filtering**: Filter data by geographic boundaries
+### Successful Login Response
+```json
+{
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "user": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "is_admin": false
+  }
+}
+```
+
+### Route Planning Response
+```json
+{
+  "route_id": "987fcdeb-51a2-43d1-b67e-89abcdef0123",
+  "distance": 1250.5,
+  "estimated_time": 250.1,
+  "route": {
+    "type": "Feature",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [[95.6530, 16.7300], [95.6550, 16.7320]]
+    }
+  }
+}
+```
+
+## Deployment
+
+### Render Deployment
+
+1. **Connect GitHub repository** to Render
+2. **Set environment variables** in Render dashboard
+3. **Configure build settings**:
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `gunicorn app:app`
+   - Python Version: `3.12`
+
+### Environment Variables for Production
+
+```env
+DB_HOST=your-supabase-host.supabase.co
+DB_NAME=postgres
+DB_USER=postgres.yourproject
+DB_PASSWORD=your-secure-password
+DB_PORT=6543
+JWT_SECRET=super-secure-production-secret
+ORIGIN=https://yourdomain.com,https://www.yourdomain.com
+```
+
+## Project Structure
+
+```Structure
+python-api/
+├── app.py              # Main Flask application
+├── requirements.txt    # Python dependencies
+├── .env               # Environment variables (local)
+├── .env.example       # Environment template
+└── README.md          # This file
+```
 
 ## Development
 
-The Flask app runs in debug mode by default, so changes will be automatically reloaded.
+### Code Style
+
+- Follow PEP 8 conventions
+- Use descriptive variable names
+- Add comments for complex logic
 
 ### Database Migrations
 
-For production, consider using Alembic for database migrations:
+- Manual SQL scripts in `../postgresql-db/initdb/`
+- Run scripts in numerical order
+- Test migrations on development database first
 
+### Testing API Endpoints
+
+- Use Postman, Thunder Client, or cURL
+- Test authentication flows thoroughly
+- Verify CORS headers for frontend integration
+
+## Troubleshooting
+
+### Common Issues
+
+**"Module not found" errors**
 ```bash
-pip install alembic
-alembic init migrations
-alembic revision --autogenerate -m "Initial migration"
-alembic upgrade head
+pip install -r requirements.txt
+source venv/bin/activate  # Ensure virtual environment is active
 ```
 
-### Testing
+**Database connection errors**
+- Verify `.env` file exists and has correct credentials
+- Check database server is running and accessible
+- Ensure PostGIS extension is installed
 
-Create test data and verify spatial queries:
+**CORS errors**
+- Add your frontend URL to `ORIGIN` environment variable
+- Check that `flask-cors` is installed
 
-```bash
-python init_db.py  # Creates sample data
-curl http://localhost:5000/api/locations  # Test location endpoints
-```
-
-## Production Deployment
-
-For production deployment:
-
-1. Use a production WSGI server (Gunicorn)
-2. Set up proper environment variables
-3. Configure database connection pooling
-4. Enable HTTPS
-5. Set up monitoring and logging
-6. Implement proper authentication and authorization
+**JWT errors**
+- Ensure `JWT_SECRET` is set in environment
+- Use fresh tokens (access tokens expire)
+- Check token format in Authorization header
