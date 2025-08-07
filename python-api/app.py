@@ -405,7 +405,8 @@ def plan_route():
             "FROM locations;"
         )
         locations = cur.fetchall()
-        def find_nearest_location(point, locations, max_dist=100):
+
+        def find_nearest_location(point, locations, max_dist=1000):
             min_dist = float('inf')
             nearest = None
             for loc in locations:
@@ -414,9 +415,10 @@ def plan_route():
                     min_dist = dist
                     nearest = loc
             return nearest
+
         start_location = find_nearest_location(start_point, locations)
         end_location = find_nearest_location(end_point, locations)
-        # Step locations
+        
         for coord in path_coords:
             loc = find_nearest_location(coord, locations)
             if loc:
@@ -451,15 +453,14 @@ def plan_route():
 
         cur.execute(
             "INSERT INTO routes (user_id, start_loc, end_loc, "
-            "optimization_type, total_distance_m, estimated_time_s, geom) "
+            "total_distance_m, estimated_time_s, geom) "
             "VALUES (%s, ST_GeogFromText(%s), ST_GeogFromText(%s), "
-            "%s, %s, %s, ST_GeogFromText(%s)) "
+            "%s, %s, ST_GeogFromText(%s)) "
             "RETURNING id;",
             (
                 user_id,
-                f"POINT({start_lon} {start_lat})",
-                f"POINT({end_lon} {end_lat})",
-                optimization,
+                f"SRID=4326;POINT({start_lon} {start_lat})",
+                f"SRID=4326;POINT({end_lon} {end_lat})",
                 total_distance,
                 estimated_time,
                 f"SRID=4326;{wkt_linestring}"
@@ -546,9 +547,9 @@ def get_history():
                 "distance": item['total_distance_m'],
                 "duration": item['duration_min']
             })
-            
-        return jsonify(history_list), 200
-        
+
+        return jsonify({"is_success": True, "history": history_list}), 200
+
     finally:
         cur.close()
         conn.close()
@@ -560,28 +561,30 @@ def save_location():
     user_id = get_jwt_identity()
     data = request.get_json()
     
-    name = data.get('name')
+    burmese_name = data.get('burmese_name')
+    english_name = data.get('english_name')
+    address = data.get('address')
     lon = data.get('lon')
     lat = data.get('lat')
-    
-    if not name or lon is None or lat is None:
-        return jsonify({"msg": "Missing required fields"}), 400
-    
+    type = data.get('type')
+
+    if not burmese_name or english_name is None or address is None or lon is None or lat is None or type is None:
+        return jsonify({"is_success": False, "msg": "Missing required fields"}), 400
+
     conn = get_db_connection()
     cur = conn.cursor()
     
-    try:
-        # Create location
+    try:        
         cur.execute(
-            "INSERT INTO locations (name, geom) "
-            "VALUES (%s, ST_GeogFromText(%s)) "
+            "INSERT INTO locations (burmese_name, english_name, address, geom, type) "
+            "VALUES (%s, %s, %s, ST_GeogFromText(%s), %s) "
             "RETURNING id;",
-            (name, f"POINT({lon} {lat})")
+            (burmese_name, english_name, address, f"SRID=4326;POINT({lon} {lat})", type)
         )
         location_id = cur.fetchone()[0]
-        
+
         # Save to user's locations
-        custom_name = data.get('custom_name', name)
+        custom_name = data.get('custom_name', burmese_name)
         cur.execute(
             "INSERT INTO user_saved_locations (user_id, location_id, custom_name) "
             "VALUES (%s, %s, %s) "
@@ -591,10 +594,10 @@ def save_location():
         saved_id = cur.fetchone()[0]
         
         conn.commit()
-        return jsonify({"id": saved_id}), 201
-        
+        return jsonify({"is_success": True, "id": saved_id}), 201
+
     except psycopg2.errors.UniqueViolation:
-        return jsonify({"msg": "Location already exists"}), 400
+        return jsonify({"is_success": False, "msg": "Location already exists"}), 400
     finally:
         cur.close()
         conn.close()
@@ -610,8 +613,8 @@ def get_saved_locations():
     
     try:
         cur.execute(
-            "SELECT ul.id, ul.custom_name, l.name, "
-            "ST_X(l.geom::geometry) AS lon, ST_Y(l.geom::geometry) AS lat "
+            "SELECT ul.id, ul.custom_name, l.burmese_name, l.english_name, l.address, "
+            "ST_X(l.geom::geometry) AS lon, ST_Y(l.geom::geometry) AS lat, l.type, ul.created_at "
             "FROM user_saved_locations ul "
             "JOIN locations l ON ul.location_id = l.id "
             "WHERE ul.user_id = %s;",
@@ -624,13 +627,17 @@ def get_saved_locations():
             locations_list.append({
                 "id": loc['id'],
                 "custom_name": loc['custom_name'],
-                "name": loc['name'],
+                "burmese_name": loc['burmese_name'],
+                "english_name": loc['english_name'],
+                "address": loc['address'],
                 "lon": loc['lon'],
-                "lat": loc['lat']
+                "lat": loc['lat'],
+                "type": loc['type'],
+                "created_at": loc['created_at'].isoformat()
             })
-            
-        return jsonify(locations_list), 200
-        
+
+        return jsonify({"is_success": True, "locations": locations_list}), 200
+
     finally:
         cur.close()
         conn.close()
@@ -680,7 +687,7 @@ def create_location():
             "INSERT INTO locations (burmese_name, english_name, address, geom, type) "
             "VALUES (%s, %s, %s, ST_GeogFromText(%s), %s) "
             "RETURNING id, burmese_name, english_name, address, type;",
-            (burmese_name, english_name, address, f"POINT({lon} {lat})", loc_type)
+            (burmese_name, english_name, address, f"SRID=4326;POINT({lon} {lat})", loc_type)
         )
         location = cur.fetchone()
         conn.commit()
@@ -712,7 +719,7 @@ def get_all_locations():
     try:
         cur.execute(
             "SELECT id, burmese_name, english_name, address, type, "
-            "ST_X(geom::geometry) AS lon, ST_Y(geom::geometry) AS lat "
+            "ST_X(ST_GeomFromEWKB(geom::geometry)) AS lon, ST_Y(ST_GeomFromEWKB(geom::geometry)) AS lat "
             "FROM locations;"
         )
         locations = cur.fetchall()
@@ -747,7 +754,7 @@ def update_location(location_id):
     
     if 'lon' in data and 'lat' in data:
         updates.append("geom = ST_GeogFromText(%s)")
-        params.append(f"POINT({data['lon']} {data['lat']})")
+        params.append(f"SRID=4326;POINT({data['lon']} {data['lat']})::geometry")
     
     if not updates:
         return jsonify({"msg": "No updates provided"}), 400
@@ -924,23 +931,11 @@ def update_road(road_id):
     if 'coordinates' in data:
         if len(data['coordinates']) < 2:
             return jsonify({"msg": "At least 2 points required"}), 400
-        
-        validated_coords = []
-        for point in data['coordinates']:
-            validated_coords.append((float(point[0]), float(point[1])))
-        
-        segment_lengths = []
-        for i in range(len(validated_coords) - 1):
-            segment_length = calculate_distance(validated_coords[i], validated_coords[i + 1])
-            segment_lengths.append(segment_length)
             
         wkt_coords = ", ".join([f"{point[0]} {point[1]}" for point in data['coordinates']])
         wkt_linestring = f"LINESTRING({wkt_coords})"
         updates.append("geom = ST_GeogFromText(%s)")
         params.append(f"SRID=4326;{wkt_linestring}")
-        
-        updates.append("length_m = %s")
-        params.append(segment_lengths)
     
     if not updates:
         return jsonify({"msg": "No updates provided"}), 400

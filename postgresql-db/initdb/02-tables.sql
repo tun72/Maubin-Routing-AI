@@ -45,11 +45,6 @@ CREATE TABLE IF NOT EXISTS routes (
     start_loc GEOGRAPHY(POINT, 4326) NOT NULL,
     end_loc GEOGRAPHY(POINT, 4326) NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
-    optimization_type VARCHAR(20) DEFAULT 'fastest' CHECK(optimization_type IN (
-        'fastest', 'shortest', 'scenic', 'efficient', 'safest'
-    )),
-    avoid_tolls BOOLEAN DEFAULT false,
-    wheelchair_accessible BOOLEAN DEFAULT false,
     total_distance_m FLOAT CHECK (total_distance_m > 0),
     estimated_time_s FLOAT CHECK (estimated_time_s > 0),
     geom GEOGRAPHY(LINESTRING, 4326),
