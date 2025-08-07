@@ -93,3 +93,15 @@ export const recentPlaces: Place[] = [
     // icon: <Coffee className="w-5 h-5" />
   },
 ];
+
+export const FIELD_NAMES = {
+  username: "Full name",
+  email: "Email",
+  password: "Password",
+};
+
+export const FIELD_TYPES = {
+  username: "text",
+  email: "email",
+  password: "password",
+};

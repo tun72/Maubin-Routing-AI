@@ -73,7 +73,7 @@ function Footer() {
                 </div>
 
                 <div className={`pt-8 border-t ${isDark ? 'border-white/10' : 'border-gray-200'} text-center ${customTheme.textSecondary}`}>
-                    <p>&copy; 2025 Mubin AI Team. All rights reserved.</p>
+                    <p>&copy; 2025 {t("team")}</p>
                 </div>
             </div>
         </footer>

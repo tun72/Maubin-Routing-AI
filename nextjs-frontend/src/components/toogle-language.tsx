@@ -1,14 +1,14 @@
 import React from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu'
-import { Globe } from 'lucide-react'
+import { Languages } from 'lucide-react'
 import Link from 'next/link'
 import { DropdownMenuSeparator } from '@radix-ui/react-dropdown-menu'
 
 function LanguageToogle() {
     return (
         <DropdownMenu >
-            <DropdownMenuTrigger className='py-2 px-2 bg-white/70 shadow dark:bg-white/30 border  border-white/20 dark:border-gray-200/50 rounded-md text-md'> <span className='flex items-center gap-2'>
-                <Globe className='w-6 h-6 inline' />Language</span></DropdownMenuTrigger>
+            <DropdownMenuTrigger> <span className='inline-flex items-center justify-center rounded-md p-2 font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'>
+                <Languages className='w-5 h-5' /></span></DropdownMenuTrigger>
             <DropdownMenuContent className='bg-white/80  dark:bg-white/10'>
                 <DropdownMenuItem>
                     <Link href={"mm"}>Myanmar</Link>
