@@ -107,7 +107,7 @@ class RoadGraph:
         conn.close()
 
     def find_nearest_node(self, point):
-        max_distance = 1000  
+        max_distance = 500  
         nearest_node = None
         min_distance = float('inf')
         
@@ -172,21 +172,61 @@ class RoadGraph:
         
         line_coords = []
         road_segments = []
+        
+        line_coords.append(start)
+        
+        start_to_first_node_distance = calculate_distance(start, start_node)
+        
+        if start != start_node and start_to_first_node_distance > 0:
+            road_segments.append({
+                'road_id': 'user_to_road',
+                'length': start_to_first_node_distance,
+                'type': 'user_segment',
+                'from': start,
+                'to': start_node
+            })
+        
+        if start != start_node:
+            line_coords.append(start_node)
+        
         for i in range(len(path) - 1):
             edge_key = (path[i], path[i+1])
             if edge_key in self.edges:
                 edge = self.edges[edge_key]
-                if i == 0:
-                    line_coords.extend(edge['geometry'])
-                else:
-                    line_coords.extend(edge['geometry'][1:])
+                line_coords.append(edge['geometry'][1])
                 
                 road_segments.append({
                     'road_id': edge['id'],
                     'length': edge['length']
                 })
+            else:
+                segment_distance = calculate_distance(path[i], path[i+1])
+                line_coords.append(path[i+1])
+                
+                road_segments.append({
+                    'road_id': 'unknown_road',
+                    'length': segment_distance,
+                    'type': 'unknown_segment',
+                    'from': path[i],
+                    'to': path[i+1]
+                })
         
-        total_distance = distances[end_node]
+        end_node_to_end_distance = calculate_distance(end_node, end)
+        
+        if end != end_node and end_node_to_end_distance > 0:
+            road_segments.append({
+                'road_id': 'road_to_user',
+                'length': end_node_to_end_distance,
+                'type': 'user_segment',
+                'from': end_node,
+                'to': end
+            })
+        
+        if not line_coords or line_coords[-1] != end:
+            line_coords.append(end)
+        
+        total_distance = start_to_first_node_distance + distances[end_node] + end_node_to_end_distance
+        
         return line_coords, total_distance, road_segments
 
 road_graph = RoadGraph()
@@ -381,23 +421,53 @@ def plan_route():
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     try:
         if road_segments:
-            road_ids = [str(segment['road_id']) for segment in road_segments]
-            if road_ids:
-                cur.execute(
-                    "SELECT id, burmese_name, english_name FROM roads WHERE id::text = ANY(%s);",
-                    (road_ids,)
-                )
-                road_data = cur.fetchall()
-                road_lookup = {str(road['id']): road for road in road_data}
-                for segment in road_segments:
-                    road_id = str(segment['road_id'])
-                    if road_id in road_lookup:
-                        road = road_lookup[road_id]
+            for segment in road_segments:
+                road_id = str(segment['road_id'])
+                
+                if segment['road_id'] in ['user_to_road', 'road_to_user']:
+                    if segment['road_id'] == 'user_to_road':
                         road_names.append({
                             'road_id': road_id,
-                            'burmese_name': road['burmese_name'],
-                            'english_name': road['english_name'],
-                            'length': segment['length']
+                            'burmese_name': 'စတင်သည့်နေရာမှအနီးဆုံးသတ်မှတ်နေရာသို့',
+                            'english_name': 'From Start Location to Nearest Defined Location',
+                            'length': f"{segment['length']} meters",
+                            'type': 'user_segment'
+                        })
+                    else: 
+                        road_names.append({
+                            'road_id': road_id,
+                            'burmese_name': 'အနီးဆုံးသတ်မှတ်နေရာမှပြီးဆုံးနေရာသို့',
+                            'english_name': 'From Nearest Defined Location to End Location',
+                            'length': f"{segment['length']} meters",
+                            'type': 'user_segment'
+                        })
+                elif segment['road_id'] == 'unknown_road':
+                    road_names.append({
+                        'road_id': road_id,
+                        'burmese_name': 'အမည်မသိလမ်း',
+                        'english_name': 'Unknown Road Segment',
+                        'length': f"{segment['length']} meters",
+                        'type': 'unknown_segment'
+                    })
+                else:
+                    cur.execute(
+                        "SELECT id, burmese_name, english_name FROM roads WHERE id::text = %s;",
+                        (road_id,)
+                    )
+                    road_data = cur.fetchone()
+                    if road_data:
+                        road_names.append({
+                            'road_id': road_id,
+                            'burmese_name': road_data['burmese_name'],
+                            'english_name': road_data['english_name'],
+                            'length': f"{segment['length']} meters"
+                        })
+                    else:
+                        road_names.append({
+                            'road_id': road_id,
+                            'burmese_name': 'အမည်မသိလမ်း',
+                            'english_name': 'Unknown Road',
+                            'length': f"{segment['length']} meters"
                         })
 
         cur.execute(
@@ -406,7 +476,7 @@ def plan_route():
         )
         locations = cur.fetchall()
 
-        def find_nearest_location(point, locations, max_dist=1000):
+        def find_nearest_location(point, locations, max_dist=500):
             min_dist = float('inf')
             nearest = None
             for loc in locations:
@@ -416,19 +486,120 @@ def plan_route():
                     nearest = loc
             return nearest
 
-        start_location = find_nearest_location(start_point, locations)
-        end_location = find_nearest_location(end_point, locations)
+        nearest_start_location = find_nearest_location(start_point, locations)
+        nearest_end_location = find_nearest_location(end_point, locations)
         
-        for coord in path_coords:
-            loc = find_nearest_location(coord, locations)
-            if loc:
-                step_locations.append({
-                    "burmese_name": loc["burmese_name"],
-                    "english_name": loc["english_name"],
-                    "address": loc["address"]
-                })
+        close_start_location = find_nearest_location(start_point, locations, max_dist=50)
+        close_end_location = find_nearest_location(end_point, locations, max_dist=50)
+        
+        if close_start_location:
+            start_location = {
+                "burmese_name": close_start_location["burmese_name"],
+                "english_name": close_start_location["english_name"],
+                "address": close_start_location["address"],
+                "longitude": close_start_location["lon"],
+                "latitude": close_start_location["lat"],
+                "type": "defined_location"
+            }
+        else:
+            start_location = {
+                "longitude": start_point[0],
+                "latitude": start_point[1],
+                "coordinates": f"{start_point[0]}, {start_point[1]}",
+                "type": "user_input"
+            }
+        
+        if close_end_location:
+            end_location = {
+                "burmese_name": close_end_location["burmese_name"],
+                "english_name": close_end_location["english_name"],
+                "address": close_end_location["address"],
+                "longitude": close_end_location["lon"],
+                "latitude": close_end_location["lat"],
+                "type": "defined_location"
+            }
+        else:
+            end_location = {
+                "longitude": end_point[0],
+                "latitude": end_point[1],
+                "coordinates": f"{end_point[0]}, {end_point[1]}",
+                "type": "user_input"
+            }
+        
+        added_locations = set() 
+        
+        for i, coord in enumerate(path_coords):
+            if i > 0 and coord == path_coords[i-1]:
+                continue
+            
+            coord_key = f"{coord[0]:.7f},{coord[1]:.7f}"
+            if coord_key in added_locations:
+                continue
+                
+            if i == 0:
+                if close_start_location:
+                    step_locations.append({
+                        "burmese_name": close_start_location["burmese_name"],
+                        "english_name": close_start_location["english_name"],
+                        "address": close_start_location["address"],
+                        "longitude": close_start_location["lon"],
+                        "latitude": close_start_location["lat"],
+                        "type": "defined_location"
+                    })
+                    added_locations.add(f"{close_start_location['lon']:.7f},{close_start_location['lat']:.7f}")
+                else:
+                    step_locations.append({
+                        "longitude": coord[0],
+                        "latitude": coord[1],
+                        "coordinates": f"{coord[0]}, {coord[1]}",
+                        "type": "user_input_start"
+                    })
+                    added_locations.add(coord_key)
+            elif i == len(path_coords) - 1:
+                if close_end_location:
+                    close_coord_key = f"{close_end_location['lon']:.7f},{close_end_location['lat']:.7f}"
+                    if close_coord_key not in added_locations:
+                        step_locations.append({
+                            "burmese_name": close_end_location["burmese_name"],
+                            "english_name": close_end_location["english_name"],
+                            "address": close_end_location["address"],
+                            "longitude": close_end_location["lon"],
+                            "latitude": close_end_location["lat"],
+                            "type": "defined_location"
+                        })
+                        added_locations.add(close_coord_key)
+                else:
+                    if coord_key not in added_locations:
+                        step_locations.append({
+                            "longitude": coord[0],
+                            "latitude": coord[1], 
+                            "coordinates": f"{coord[0]}, {coord[1]}",
+                            "type": "user_input_end"
+                        })
+                        added_locations.add(coord_key)
             else:
-                step_locations.append(None)
+                loc = find_nearest_location(coord, locations)
+                if loc:
+                    loc_coord_key = f"{loc['lon']:.7f},{loc['lat']:.7f}"
+                    if loc_coord_key not in added_locations:
+                        step_locations.append({
+                            "burmese_name": loc["burmese_name"],
+                            "english_name": loc["english_name"],
+                            "address": loc["address"],
+                            "longitude": loc["lon"],
+                            "latitude": loc["lat"],
+                            "type": "defined_location"
+                        })
+                        added_locations.add(loc_coord_key)
+                else:
+                    if coord_key not in added_locations:
+                        step_locations.append({
+                            "longitude": coord[0],
+                            "latitude": coord[1],
+                            "coordinates": f"{coord[0]}, {coord[1]}",
+                            "type": "road_point"
+                        })
+                        added_locations.add(coord_key)
     finally:
         cur.close()
         conn.close()
@@ -475,15 +646,15 @@ def plan_route():
             (
                 user_id,
                 route_id,
-                (start_location['burmese_name'] if start_location else data.get('start_name', 'Start')),
-                (end_location['burmese_name'] if end_location else data.get('end_name', 'End')),
+                (nearest_start_location['burmese_name'] if nearest_start_location else data.get('start_name', 'Start')),
+                (nearest_end_location['burmese_name'] if nearest_end_location else data.get('end_name', 'End')),
                 total_distance,
-                estimated_time / 60  # convert to minutes
+                estimated_time / 60
             )
         )
-
+        
         conn.commit()
-
+        
         response = {
             "is_success": True,
             "route_id": route_id,
@@ -491,20 +662,10 @@ def plan_route():
             "estimated_time": estimated_time,
             "route": geojson_route,
             "road_names": road_names,
-            "step_locations": step_locations
+            "step_locations": step_locations,
+            "start_location": start_location,
+            "end_location": end_location
         }
-        if start_location:
-            response["start_location"] = {
-                "burmese_name": start_location["burmese_name"],
-                "english_name": start_location["english_name"],
-                "address": start_location["address"]
-            }
-        if end_location:
-            response["end_location"] = {
-                "burmese_name": end_location["burmese_name"],
-                "english_name": end_location["english_name"],
-                "address": end_location["address"]
-            }
         return jsonify(response), 200
 
     except Exception as e:
@@ -526,11 +687,13 @@ def get_history():
     
     try:
         cur.execute(
-            "SELECT history_id, route_id, accessed_at, start_name, end_name, "
-            "total_distance_m, duration_min "
-            "FROM user_route_history "
-            "WHERE user_id = %s "
-            "ORDER BY accessed_at DESC "
+            "SELECT "
+            "h.history_id, h.route_id, h.accessed_at, h.start_name, h.end_name, "
+            "h.total_distance_m, h.duration_min, ST_AsGeoJSON(r.geom::geometry) AS geojson "
+            "FROM user_route_history h "
+            "JOIN routes r ON h.route_id = r.id "
+            "WHERE h.user_id = %s "
+            "ORDER BY h.accessed_at DESC "
             "LIMIT 20;",
             (user_id,)
         )
@@ -545,7 +708,8 @@ def get_history():
                 "start": item['start_name'],
                 "end": item['end_name'],
                 "distance": item['total_distance_m'],
-                "duration": item['duration_min']
+                "duration": item['duration_min'],
+                "route": json.loads(item['geojson']) if item['geojson'] else None
             })
 
         return jsonify({"is_success": True, "history": history_list}), 200
@@ -583,7 +747,6 @@ def save_location():
         )
         location_id = cur.fetchone()[0]
 
-        # Save to user's locations
         custom_name = data.get('custom_name', burmese_name)
         cur.execute(
             "INSERT INTO user_saved_locations (user_id, location_id, custom_name) "
