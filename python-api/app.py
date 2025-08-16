@@ -247,6 +247,13 @@ def handle_options(path):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
+@app.route('/', methods=['GET'])
+def main():
+    return jsonify({
+        "is_success": True,
+        "msg": "API is running smoothly"
+    })
+
 # === AUTHENTICATION ===
 
 # User Registration
@@ -728,11 +735,12 @@ def save_location():
     burmese_name = data.get('burmese_name')
     english_name = data.get('english_name')
     address = data.get('address')
+    description = data.get('description')
     lon = data.get('lon')
     lat = data.get('lat')
     type = data.get('type')
 
-    if not burmese_name or english_name is None or address is None or lon is None or lat is None or type is None:
+    if not burmese_name or english_name is None or address is None or description is None or lon is None or lat is None or type is None:
         return jsonify({"is_success": False, "msg": "Missing required fields"}), 400
 
     conn = get_db_connection()
@@ -740,10 +748,10 @@ def save_location():
     
     try:        
         cur.execute(
-            "INSERT INTO locations (burmese_name, english_name, address, geom, type) "
-            "VALUES (%s, %s, %s, ST_GeogFromText(%s), %s) "
+            "INSERT INTO locations (burmese_name, english_name, address, geom, type, description) "
+            "VALUES (%s, %s, %s, ST_GeogFromText(%s), %s, %s) "
             "RETURNING id;",
-            (burmese_name, english_name, address, f"SRID=4326;POINT({lon} {lat})", type)
+            (burmese_name, english_name, address, f"SRID=4326;POINT({lon} {lat})", type, description)
         )
         location_id = cur.fetchone()[0]
 
@@ -776,7 +784,7 @@ def get_saved_locations():
     
     try:
         cur.execute(
-            "SELECT ul.id, ul.custom_name, l.burmese_name, l.english_name, l.address, "
+            "SELECT ul.id, ul.custom_name, l.burmese_name, l.english_name, l.address, l.description, "
             "ST_X(l.geom::geometry) AS lon, ST_Y(l.geom::geometry) AS lat, l.type, ul.created_at "
             "FROM user_saved_locations ul "
             "JOIN locations l ON ul.location_id = l.id "
@@ -793,6 +801,7 @@ def get_saved_locations():
                 "burmese_name": loc['burmese_name'],
                 "english_name": loc['english_name'],
                 "address": loc['address'],
+                "description": loc['description'],
                 "lon": loc['lon'],
                 "lat": loc['lat'],
                 "type": loc['type'],
@@ -836,21 +845,22 @@ def create_location():
     burmese_name = data.get('burmese_name')
     english_name = data.get('english_name')
     address = data.get('address')
+    description = data.get('description')
     lon = data.get('lon')
     lat = data.get('lat')
     loc_type = data.get('type')
 
-    if not burmese_name or english_name is None or address is None or lon is None or lat is None:
+    if not burmese_name or english_name is None or address is None or description is None or lon is None or lat is None:
         return jsonify({"msg": "Missing name or coordinates"}), 400
     
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     try:
         cur.execute(
-            "INSERT INTO locations (burmese_name, english_name, address, geom, type) "
-            "VALUES (%s, %s, %s, ST_GeogFromText(%s), %s) "
-            "RETURNING id, burmese_name, english_name, address, type;",
-            (burmese_name, english_name, address, f"SRID=4326;POINT({lon} {lat})", loc_type)
+            "INSERT INTO locations (burmese_name, english_name, address, geom, type, description) "
+            "VALUES (%s, %s, %s, ST_GeogFromText(%s), %s, %s) "
+            "RETURNING id, burmese_name, english_name, address, type, description;",
+            (burmese_name, english_name, address, f"SRID=4326;POINT({lon} {lat})", loc_type, description)
         )
         location = cur.fetchone()
         conn.commit()
@@ -863,6 +873,7 @@ def create_location():
             "burmese_name": location['burmese_name'],
             "english_name": location['english_name'],
             "address": location['address'],
+            "description": location['description'],
             "type": location['type'],
             "msg": "Location created"
         }), 201
@@ -881,7 +892,7 @@ def get_all_locations():
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     try:
         cur.execute(
-            "SELECT id, burmese_name, english_name, address, type, "
+            "SELECT id, burmese_name, english_name, address, type, description, "
             "ST_X(ST_GeomFromEWKB(geom::geometry)) AS lon, ST_Y(ST_GeomFromEWKB(geom::geometry)) AS lat "
             "FROM locations;"
         )
@@ -910,7 +921,11 @@ def update_location(location_id):
     if 'address' in data:
         updates.append("address = %s")
         params.append(data['address'])
-    
+
+    if 'description' in data:
+        updates.append("description = %s")
+        params.append(data['description'])
+
     if 'type' in data:
         updates.append("type = %s")
         params.append(data['type'])
