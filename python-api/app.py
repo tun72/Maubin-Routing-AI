@@ -335,7 +335,7 @@ def logout():
 # === USER ===
 
 # User Profile
-@app.route('/profile', methods=['GET'])
+@app.route('/', methods=['GET'])
 @jwt_required()
 def get_profile():
     user_id = get_jwt_identity()
@@ -1210,4 +1210,4 @@ def internal_error(error):
     return jsonify({"is_success": False,"msg": "Internal server error"}), 500
     
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=4000, debug=True)

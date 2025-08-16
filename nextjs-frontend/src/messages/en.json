@@ -6,7 +6,7 @@
     "navigation_link_4": "Contact",
     "language": "Language",
     "started": "Get Started",
-    "title": "Maubin Navigation",
+    "title": "Maubin Path Finder",
     "hero1": "Navigate Smarter",
     "hero2": "with",
     "hero3": "AI-Powered",
@@ -54,6 +54,7 @@
     "contact_us": "Contact Us",
     "privacy_policy": "Privacy Policy",
     "terms_of_service": "Terms of Service",
-    "footer": "2025 Mubin AI Team. All rights reserved"
+    "footer": "2025 PUM AI Team. All rights reserved",
+    "team": "Polytechnic University Maubin AI team. All rights reserved."
   }
 }
