@@ -294,7 +294,14 @@ def handle_options(path):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-# Authentication routes
+@app.route('/', methods=['GET'])
+def main():
+    return jsonify({
+        "is_success": True,
+        "msg": "API is running smoothly"
+    })
+
+# === AUTHENTICATION ===
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -367,7 +374,6 @@ def login():
 def logout():
     return jsonify({"is_success": True, "msg": "Successfully logged out"}), 200
 
-# User routes
 @app.route('/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
@@ -941,6 +947,7 @@ def save_location():
     burmese_name = data.get('burmese_name')
     english_name = data.get('english_name')
     address = data.get('address')
+    description = data.get('description')
     lon = data.get('lon')
     lat = data.get('lat')
     loc_type = data.get('type')
@@ -953,8 +960,8 @@ def save_location():
     
     try:        
         cur.execute(
-            "INSERT INTO locations (burmese_name, english_name, address, geom, type) "
-            "VALUES (%s, %s, %s, ST_GeogFromText(%s), %s) "
+            "INSERT INTO locations (burmese_name, english_name, address, geom, type, description) "
+            "VALUES (%s, %s, %s, ST_GeogFromText(%s), %s, %s) "
             "RETURNING id;",
             (burmese_name, english_name, address, f"SRID=4326;POINT({lon} {lat})", loc_type)
         )
@@ -1004,6 +1011,7 @@ def get_saved_locations():
                 "burmese_name": loc['burmese_name'],
                 "english_name": loc['english_name'],
                 "address": loc['address'],
+                "description": loc['description'],
                 "lon": loc['lon'],
                 "lat": loc['lat'],
                 "type": loc['type'],
@@ -1023,6 +1031,7 @@ def create_location():
     burmese_name = data.get('burmese_name')
     english_name = data.get('english_name')
     address = data.get('address')
+    description = data.get('description')
     lon = data.get('lon')
     lat = data.get('lat')
     description = data.get('description')
@@ -1052,6 +1061,7 @@ def create_location():
             "burmese_name": location['burmese_name'],
             "english_name": location['english_name'],
             "address": location['address'],
+            "description": location['description'],
             "type": location['type'],
             "description": location['description'],
             "msg": "Location created"
@@ -1381,4 +1391,4 @@ def internal_error(error):
     return jsonify({"is_success": False,"msg": "Internal server error"}), 500
     
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=4000, debug=True)

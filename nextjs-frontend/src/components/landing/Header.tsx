@@ -48,7 +48,7 @@ function Header() {
                         <a href="#contact" className={`hover:${customTheme.accent} transition-colors`}>Contact</a>
                     </div>
 
-                    <div className="hidden md:flex items-center space-x-4">
+                    <div className="hidden md:flex items-center space-x-3">
                         <ThemeToggle />
                         <LanguageToogle />
                         <Link href={"/home"}

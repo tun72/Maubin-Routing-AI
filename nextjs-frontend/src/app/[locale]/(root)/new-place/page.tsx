@@ -33,6 +33,7 @@ import MapProvider from "@/lib/mapbox/provider";
 import MapStyles from "@/components/map/map-styles";
 import MapCotrols from "@/components/map/map-controls";
 import MapSearch from "@/components/map/map-search";
+import SearchForm from "@/components/new-place/SearchForm";
 
 export default function Home() {
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -48,12 +49,13 @@ export default function Home() {
             <MapProvider
                 mapContainerRef={mapContainerRef}
                 initialViewState={{
-                    longitude: -122.4194,
-                    latitude: 37.7749,
-                    zoom: 10,
+                    longitude: 95.6538,
+                    latitude: 16.7274,
+                    zoom: 15,
                 }}
             >
                 <MapSearch />
+                {/* <SearchForm /> */}
                 <MapCotrols />
                 <MapStyles />
             </MapProvider>
