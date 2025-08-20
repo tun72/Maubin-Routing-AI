@@ -22,8 +22,10 @@ app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET')
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(days=7)
 
 # Initialize extensions
+origins = os.environ.get('ORIGIN', '').split(",")
+
 CORS(app, 
-     origins=os.environ.get('ORIGIN').split(","),
+     origins=origins,
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
@@ -280,7 +282,7 @@ road_graph = RoadGraph()
 # Route handlers
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', os.environ.get('ORIGIN').split(","))
+    response.headers.add('Access-Control-Allow-Origin', origins)
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
@@ -289,7 +291,7 @@ def after_request(response):
 @app.route('/<path:path>', methods=['OPTIONS'])
 def handle_options(path):
     response = jsonify({'status': 'OK'})
-    response.headers.add('Access-Control-Allow-Origin', os.environ.get('ORIGIN').split(","))
+    response.headers.add('Access-Control-Allow-Origin', origins)
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
