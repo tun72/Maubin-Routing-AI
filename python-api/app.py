@@ -22,13 +22,18 @@ app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET')
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(days=7)
 
 # Initialize extensions
-origins = os.environ.get('ORIGIN', '').split(",")
-
-CORS(app, 
-     origins=origins,
-     supports_credentials=True,
-     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+CORS(
+    app,
+    resources={r"/*": {"origins": [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ]}},
+    supports_credentials=True,
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 jwt = JWTManager(app)
 
 # Database connection function
@@ -280,21 +285,21 @@ class RoadGraph:
 road_graph = RoadGraph()
 
 # Route handlers
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', origins)
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
+# @app.after_request
+# def after_request(response):
+#     response.headers.add('Access-Control-Allow-Origin', origins)
+#     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+#     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+#     response.headers.add('Access-Control-Allow-Credentials', 'true')
+#     return response
 
-@app.route('/<path:path>', methods=['OPTIONS'])
-def handle_options(path):
-    response = jsonify({'status': 'OK'})
-    response.headers.add('Access-Control-Allow-Origin', origins)
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+# @app.route('/<path:path>', methods=['OPTIONS'])
+# def handle_options(path):
+#     response = jsonify({'status': 'OK'})
+#     response.headers.add('Access-Control-Allow-Origin', origins)
+#     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+#     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+#     return response
 
 @app.route('/', methods=['GET'])
 def main():
@@ -438,6 +443,8 @@ def plan_route():
     end_lon = data.get('end_lon')
     end_lat = data.get('end_lat')
     optimization = data.get('optimization', 'shortest')
+    
+    print("hit")
     
     if None in (start_lon, start_lat, end_lon, end_lat):
         return jsonify({"is_success": False, "msg": "Missing coordinates"}), 400

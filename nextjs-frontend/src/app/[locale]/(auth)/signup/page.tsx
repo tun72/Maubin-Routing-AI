@@ -1,6 +1,5 @@
 "use client"
 import AuthForm from "@/components/login-form";
-import { signUpWithCredentials } from "@/lib/actions/auth";
 import { signUpSchema } from "@/lib/validation";
 import { GalleryVerticalEnd } from "lucide-react";
 
@@ -15,7 +14,7 @@ export default function SignupPage() {
                     </div>
                     Maubin Navigation
                 </a>
-                <AuthForm type={"SIGN_UP"} schema={signUpSchema} defaultValues={{ email: "", password: "", username: "" }} onSubmit={signUpWithCredentials} />
+                <AuthForm type={"SIGN_UP"} schema={signUpSchema} defaultValues={{ email: "", password: "", username: "" }} />
 
             </div>
         </div>

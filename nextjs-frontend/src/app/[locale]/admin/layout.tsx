@@ -7,10 +7,16 @@ import {
 } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/ui/theme-toogle"
 
-export default function Layout({ children }: Readonly<{
+
+
+export default async function Layout({ children }: Readonly<{
     children: React.ReactNode;
 }>) {
+
+
+
     return (
+
         <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
@@ -28,5 +34,6 @@ export default function Layout({ children }: Readonly<{
                 {children}
             </SidebarInset>
         </SidebarProvider>
+
     )
 }

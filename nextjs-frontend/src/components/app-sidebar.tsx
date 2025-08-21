@@ -2,6 +2,7 @@ import * as React from "react"
 import {
     Frame,
     Map,
+    Rotate3D,
     User,
 } from "lucide-react"
 
@@ -31,15 +32,21 @@ const data = {
             icon: Frame,
         },
         {
-            name: "Routes",
-            url: "/admin/routes",
+            name: "Locations",
+            url: "/admin/locations",
             icon: Map,
+        },
+        {
+            name: "Roads",
+            url: "/admin/roads",
+            icon: Rotate3D,
         },
         {
             name: "Users",
             url: "/admin/users",
             icon: User,
         },
+
     ],
 }
 

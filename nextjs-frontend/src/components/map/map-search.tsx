@@ -21,7 +21,7 @@ import {
 } from "@/lib/mapbox/utils";
 import { LocationMarker } from "../location-marker";
 import { LocationPopup } from "../location-popup";
-import SearchForm from "../new-place/SearchForm";
+import SearchForm from "../new-place/SearchLocation";
 
 export default function MapSearch() {
     const { map } = useMap();

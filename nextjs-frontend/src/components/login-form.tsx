@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { FIELD_NAMES, FIELD_TYPES } from "@/constant/constant"
 import { toast } from "sonner"
+import { authApi } from "@/lib/api"
+import { useAuthStore } from "@/store/auth-store"
 
 
 
@@ -42,7 +45,6 @@ interface Props<T extends FieldValues> {
     type: "SIGN_IN" | "SIGN_UP";
     schema: ZodType<T>;
     defaultValues: DefaultValues<T>;
-    onSubmit: (data: T) => Promise<{ success: boolean; error?: string }>;
 }
 
 
@@ -50,35 +52,63 @@ interface Props<T extends FieldValues> {
 //     phone: z.string().min(7, "Phone number is too short.").max(12, "Phone number is too long").regex(/^\d+$/, "Phone number must be numbers."),
 //     password: z.string().min(8, "P assword must be min of 8 characters."),
 // })
-function AuthForm<T extends FieldValues>({ type, schema, defaultValues, onSubmit }: Props<T>) {
+function AuthForm<T extends FieldValues>({ type, schema, defaultValues }: Props<T>) {
 
     const router = useRouter();
 
-    const form: UseFormReturn<T> = useForm<z.infer<typeof schema>>({
+    const form: UseFormReturn = useForm<z.infer<typeof schema>>({
         resolver: zodResolver(schema),
         defaultValues: defaultValues as DefaultValues<T>,
     });
 
+    const { setAuth } = useAuthStore();
+
 
     const handelSubmit: SubmitHandler<T> = async (data) => {
-        console.log(data);
+
+        try {
+            if (type === "SIGN_IN") {
+                const response = await authApi.login({
+                    email: data.email,
+                    password: data.password,
+                });
+
+                if (response.data.is_success) {
+                    toast("Login Success", {
+
+                        action: {
+                            label: "Undo",
+                            onClick: () => console.log("Undo"),
+                        },
+                    })
+                    setAuth(response.data.access_token, response.data.user);
+                }
+
+                router.push("/home")
+            }
+
+            if (type === "SIGN_UP") {
+                const response = await authApi.register({
+                    username: data.username,
+                    email: data.email,
+                    password: data.password,
+                });
+                if (response.data.is_success) {
+                    toast("Register Success", {
+
+                        action: {
+                            label: "Undo",
+                            onClick: () => console.log("Undo"),
+                        },
+                    })
+                }
+                router.push("/login")
+            }
 
 
-        const result = await onSubmit(data);
 
-
-
-        if (result.success) {
-            toast(type === "SIGN_IN" ? "Sign In Success" : "Register successfully Please Login", {
-
-                action: {
-                    label: "Undo",
-                    onClick: () => console.log("Undo"),
-                },
-            })
-
-            router.push(type === "SIGN_IN" ? "/home" : "/login");
-        } else {
+        } catch (error: any) {
+            console.error('Login failed:', error);
             toast("Event has been created", {
 
                 action: {
