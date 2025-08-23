@@ -26,6 +26,8 @@ function SearchLocation() {
     const [locationError, setLocationError] = useState<string | null>(null)
     const [isProcessingRoute, setIsProcessingRoute] = useState(false)
     const [isRouteReady, setIsRouteReady] = useState(false)
+    const [historyId, setHistoryId] = useState("")
+
 
     const {
         control,
@@ -76,8 +78,9 @@ function SearchLocation() {
                 setIsProcessingRoute(true)
                 setIsRouteReady(false)
                 const response = await postRoutes(formattedData)
-                console.log(response)
+                console.log(response.result)
                 console.log("Form submitted:", formattedData)
+                setHistoryId(response.result.data.history_id)
                 setIsRouteReady(true)
             } catch (error) {
                 console.error("Error processing route:", error)
@@ -209,11 +212,11 @@ function SearchLocation() {
                                     <h3 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent mb-4">
                                         Your route is ready
                                     </h3>
-                                    <Button asChild
+                                    {historyId && <Button asChild
                                         className="bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-500 dark:to-emerald-500 hover:from-green-700 hover:to-emerald-700 dark:hover:from-green-600 dark:hover:to-emerald-600 text-white py-3 px-8 rounded-xl font-medium transition-all duration-200 shadow-lg transform hover:scale-105 active:scale-95"
                                     >
-                                        <Link href={"/map/123456"}>go now</Link>
-                                    </Button>
+                                        <Link href={`/map/${historyId}`}>go now</Link>
+                                    </Button>}
                                 </div>
                             </div>
                         ) : (

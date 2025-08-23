@@ -25,14 +25,16 @@ export const favoritePlaces: Place[] = [
   },
   {
     id: "3",
-    name: "City Hospital",
-    address: "789 Health Boulevard, Medical Center",
+    name: "ဓမ္မနောရမ ဝိပဿနာရိပ်သာ",
+    address: "Myo Shaung Road & 3rd Street",
     category: "Healthcare",
     distance: "5.7 km",
     estimatedTime: "15 mins",
     image: "/api/placeholder/300/200",
     rating: 4.2,
     visits: 8,
+    lon: 95.6444175781722,
+    lat: 16.7373190850105,
   },
   {
     id: "4",

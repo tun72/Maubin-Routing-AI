@@ -1,27 +1,37 @@
-"use client";
-import LocationDataTable from "@/components/admin/location-datatable";
-import { Button } from "@/components/ui/button";
-import { getLocations } from "@/lib/admin/locations";
-import Link from "next/link";
-import React, { useEffect, useState } from "react";
+"use client"
+import LocationDataTable from "@/components/admin/location-datatable"
+import { Button } from "@/components/ui/button"
+import { useLocationStore } from "@/store/use-location-store"
+import Link from "next/link"
+import { useEffect } from "react"
+
 
 function Location() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [locations, setLocations] = useState<any[]>([]); // adjust type later
+    const {
+        locations,
+        loading,
+        error,
+        fetchLocations,
+        reloadLocations,
+        clearError
+    } = useLocationStore()
 
+    // Fetch locations on mount (with caching)
     useEffect(() => {
-        const fetchLocations = async () => {
-            try {
-                const data = await getLocations();
-                console.log("Locations:", data);
-                setLocations(data?.locations?.data || []); // ✅ safely handle
-            } catch (error) {
-                console.error("Failed to fetch locations:", error);
-            }
-        };
+        fetchLocations()
+    }, [fetchLocations])
 
-        fetchLocations();
-    }, []);
+    // Clear error when component unmounts or user takes action
+    useEffect(() => {
+        if (error) {
+            const timer = setTimeout(() => clearError(), 5000) // Auto-clear error after 5s
+            return () => clearTimeout(timer)
+        }
+    }, [error, clearError])
+
+    const handleReload = async () => {
+        await reloadLocations()
+    }
 
     return (
         <div className="w-full p-4">
@@ -29,16 +39,45 @@ function Location() {
                 <Button asChild>
                     <Link href="/admin/locations/create">Create Locations</Link>
                 </Button>
+                <Button
+                    variant="outline"
+                    onClick={handleReload}
+                    disabled={loading}
+                >
+                    {loading ? "Loading..." : "Reload Data"}
+                </Button>
             </div>
 
-            {/* Render datatable only if data is loaded */}
-            {locations.length > 0 ? (
-                <LocationDataTable data={locations} />
-            ) : (
+            {loading && (
+                <p className="text-sm text-muted-foreground">Loading locations...</p>
+            )}
+
+            {error && (
+                <div className="flex items-center space-x-2 mb-4">
+                    <p className="text-sm text-red-500">{error}</p>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearError}
+                        className="text-red-500 hover:text-red-700"
+                    >
+                        ✕
+                    </Button>
+                </div>
+            )}
+
+            {!loading && !error && locations.length > 0 && (
+                <LocationDataTable
+                    data={locations}
+                    onDataChange={reloadLocations}
+                />
+            )}
+
+            {!loading && !error && locations.length === 0 && (
                 <p className="text-sm text-muted-foreground">No locations found</p>
             )}
         </div>
-    );
+    )
 }
 
-export default Location;
+export default Location

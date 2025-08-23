@@ -1,49 +1,83 @@
-"use client";
+"use client"
+import RoadDataTable from "@/components/admin/road-datatable"
+import { Button } from "@/components/ui/button"
+import { useRoadStore } from "@/store/use-roads-store"
+import Link from "next/link"
+import { useEffect } from "react"
 
-import RoadDataTable from "@/components/admin/road-datatable";
-import { Button } from "@/components/ui/button";
-import { getRoads } from "@/lib/admin/roads";
-import Link from "next/link";
-import React, { useEffect, useState } from "react";
 
 function Road() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [roads, setRoads] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const {
+        roads,
+        loading,
+        error,
+        fetchRoads,
+        reloadRoads,
+        clearError
+    } = useRoadStore()
 
+    // Fetch roads on mount (with caching)
     useEffect(() => {
-        const fetchRoads = async () => {
-            try {
-                const data = await getRoads();
-                setRoads(data?.roads?.data || []);
-            } catch (err) {
-                console.error("Failed to fetch roads:", err);
-                setError("Failed to load roads.");
-            } finally {
-                setLoading(false);
-            }
-        };
+        fetchRoads()
+    }, [fetchRoads])
 
-        fetchRoads();
-    }, []);
+    // Clear error when component unmounts or user takes action
+    useEffect(() => {
+        if (error) {
+            const timer = setTimeout(() => clearError(), 5000) // Auto-clear error after 5s
+            return () => clearTimeout(timer)
+        }
+    }, [error, clearError])
+
+    const handleReload = async () => {
+        await reloadRoads()
+    }
 
     return (
         <div className="w-full p-4">
             <div className="flex items-center py-4 space-x-4">
                 <Button asChild>
-                    <Link href="/admin/roads/create">Create Roads</Link>
+                    <Link href="/admin/roads/create">Create Road</Link>
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={handleReload}
+                    disabled={loading}
+                >
+                    {loading ? "Loading..." : "Reload Data"}
                 </Button>
             </div>
 
-            {loading && <p className="text-sm text-muted-foreground">Loading roads...</p>}
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            {!loading && !error && roads.length > 0 && <RoadDataTable data={roads} />}
+            {loading && (
+                <p className="text-sm text-muted-foreground">Loading roads...</p>
+            )}
+
+            {error && (
+                <div className="flex items-center space-x-2 mb-4">
+                    <p className="text-sm text-red-500">{error}</p>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearError}
+                        className="text-red-500 hover:text-red-700"
+                    >
+                        ✕
+                    </Button>
+                </div>
+            )}
+
+            {!loading && !error && roads.length > 0 && (
+                <RoadDataTable
+                    data={roads}
+                    onDataChange={reloadRoads}
+                />
+            )}
+
             {!loading && !error && roads.length === 0 && (
                 <p className="text-sm text-muted-foreground">No roads found</p>
             )}
         </div>
-    );
+    )
 }
 
-export default Road;
+export default Road

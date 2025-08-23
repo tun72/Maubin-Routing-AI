@@ -28,7 +28,7 @@ export default function FavouritePlaces() {
                 <CarouselContent className="-ml-1">
                     {favoritePlaces.map((place) => (
                         <CarouselItem key={place.id} className="pl-1 lg:basis-1/4">
-                            <PlaceCard place={place} type="favorite" />
+                            <PlaceCard place={place} type="favorite" isFav={true} lat={place.lat} lon={place.lon} />
                         </CarouselItem>
                     ))}
                 </CarouselContent>

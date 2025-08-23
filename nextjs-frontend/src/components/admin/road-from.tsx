@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -15,7 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Loader2, Plus, X, Check, ChevronsUpDown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { getLocations } from "@/lib/admin/locations"
+import { useRoadStore } from "@/store/use-roads-store"
+import { useLocationStore } from "@/store/use-location-store"
 
 const routeSchema = z.object({
     burmese_name: z.string().min(1, "Burmese name is required"),
@@ -29,16 +31,18 @@ const routeSchema = z.object({
 type RouteFormData = z.infer<typeof routeSchema>
 
 
-const roadTypes = ["highway", "primary", "secondary", "tertiary", "residential", "service", "track", "path", "local"]
+const roadTypes = ['highway', 'local', 'residential', 'service', 'pedestrian']
 
 export default function RoadForm({ onSubmit }: { onSubmit: (data: Roads) => Promise<{ success: boolean; error?: string }>; }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [coordinatePairs, setCoordinatePairs] = useState<Array<{ name: string; coordinates: [number, number] }>>([])
     const [open, setOpen] = useState(false)
     const [selectedLocation, setSelectedLocation] = useState("")
-    const [locations, setLocations] = useState<Array<{ english_name: string; lon: number; lat: number }>>([])
+
 
     const router = useRouter()
+    const { addRoad } = useRoadStore()
+    const { locations } = useLocationStore()
 
 
     const {
@@ -59,29 +63,6 @@ export default function RoadForm({ onSubmit }: { onSubmit: (data: Roads) => Prom
         },
     })
 
-
-    useEffect(() => {
-        const fetchLocations = async () => {
-            try {
-                // setIsLoadingLocations(true)
-                // setLocationError(null)
-                const data = await getLocations()
-                // if (!data.success) {
-                //     throw new Error("Error")
-                // }
-
-                setLocations(data.locations.data)
-
-            } catch (error) {
-                console.error("Error fetching locations:", error)
-                // setLocationError(error instanceof Error ? error.message : "Failed to load locations")
-            } finally {
-                // setIsLoadingLocations(false)
-            }
-        }
-
-        fetchLocations()
-    }, [])
 
     const isOneway = watch("is_oneway")
 
@@ -124,10 +105,11 @@ export default function RoadForm({ onSubmit }: { onSubmit: (data: Roads) => Prom
 
             }
 
-            console.log("Transformed data:", JSON.stringify(transformedData, null, 2))
-
-            onSubmit(transformedData)
-
+            const response = await onSubmit(transformedData) as { success: boolean, data: any }
+            if (!response.success) {
+                throw new Error("Road Insert Error")
+            }
+            addRoad({ ...response.data, burmese_name: data.burmese_name, english_name: data.english_name, road_type: data.road_type })
             router.push("/admin/roads")
         } catch (error) {
             console.log(error);

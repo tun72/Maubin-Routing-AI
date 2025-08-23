@@ -11,8 +11,6 @@ import GallarySecion from '@/components/landing/GallarySecion';
 
 
 const NavigationLanding = async () => {
-
-
     return (
         <section className={`min-h-screen font-sans transition-colors duration-300`}>
             {/* <div className="absolute inset-0 z-0">

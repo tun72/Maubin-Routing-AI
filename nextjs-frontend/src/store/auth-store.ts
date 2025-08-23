@@ -13,6 +13,7 @@ interface AuthState {
   setAuth: (token: string, user: User) => void;
   clearAuth: () => void;
   setHasEmailConfig: (hasConfig: boolean) => void;
+  isAdmin: boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,6 +24,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       hasEmailConfig: false,
       hydrated: false,
+      isAdmin: false,
 
       // Updated to accept token separately
       setAuth: (token: string, user: User) => {
@@ -32,6 +34,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             token,
             hasEmailConfig: false, // backend doesn’t provide, default false
+            isAdmin: user.is_admin,
           });
         }
       },

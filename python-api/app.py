@@ -22,6 +22,8 @@ app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET')
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(days=7)
 
 # Initialize extensions
+# origins = os.environ.get('ORIGIN', '').split(",")
+
 CORS(
     app,
     resources={r"/*": {"origins": [
@@ -444,8 +446,6 @@ def plan_route():
     end_lat = data.get('end_lat')
     optimization = data.get('optimization', 'shortest')
     
-    print("hit")
-    
     if None in (start_lon, start_lat, end_lon, end_lat):
         return jsonify({"is_success": False, "msg": "Missing coordinates"}), 400
 
@@ -671,7 +671,8 @@ def plan_route():
     cur = conn.cursor()
 
     try:
-        wkt_coords = ", ".join([f"{lon} {lat}" for lat, lon in path_coords])
+        # IMPORTANT: path_coords stores (lon, lat). Do not swap when writing WKT.
+        wkt_coords = ", ".join([f"{lon} {lat}" for lon, lat in path_coords])
         wkt_linestring = f"LINESTRING({wkt_coords})"
 
         estimated_time = total_distance / 5.0  # Assuming 5 m/s average speed
@@ -696,7 +697,7 @@ def plan_route():
         cur.execute(
             "INSERT INTO user_route_history (user_id, route_id, "
             "start_name, end_name, total_distance_m, duration_min) "
-            "VALUES (%s, %s, %s, %s, %s, %s);",
+            "VALUES (%s, %s, %s, %s, %s, %s) RETURNING history_id;",
             (
                 user_id,
                 route_id,
@@ -706,12 +707,14 @@ def plan_route():
                 estimated_time / 60
             )
         )
-        
+        history_id = cur.fetchone()[0]
+
         conn.commit()
         
         response = {
             "is_success": True,
             "route_id": route_id,
+            "history_id": history_id,
             "distance": total_distance,
             "estimated_time": estimated_time,
             "route": geojson_route,
@@ -827,7 +830,11 @@ def get_history():
                 "end": item['end_name'],
                 "distance": item['total_distance_m'],
                 "duration": item['duration_min'],
-                "route": json.loads(item['geojson']) if item['geojson'] else None,
+                "route": ({
+                    "type": "Feature",
+                    "properties": {},
+                    "geometry": json.loads(item['geojson'])
+                } if item['geojson'] else None),
                 "road_names": road_names
             })
 
@@ -885,7 +892,7 @@ def get_history_by_id(history_id):
                                     'english': 'From Start Location to Nearest Defined Location'
                                 },
                                 'road_to_user': {
-                                    'burmese': 'အနီးဆုံးသတ်မှတ်နေရာမှပြီးဆုံး�နေရာသို့',
+                                    'burmese': 'အနီးဆုံးသတ်မှတ်နေရာမှပြီးဆုံးနေရာသို့',
                                     'english': 'From Nearest Defined Location to End Location'
                                 }
                             }
@@ -926,20 +933,195 @@ def get_history_by_id(history_id):
                                 })
             except Exception as e:
                 app.logger.error(f"Error processing road segments: {str(e)}")
-        
-        history_item = {
-            "id": item['history_id'],
+        # Build locations and step locations similar to plan_route
+        path_coords = []
+        if item['geojson']:
+            try:
+                geojson_data = json.loads(item['geojson'])
+                if geojson_data and 'coordinates' in geojson_data:
+                    path_coords = [(coord[0], coord[1]) for coord in geojson_data['coordinates']]
+                    # Robust safety fix: if swapping lon/lat aligns path ends closer to stored start/end, swap
+                    if path_coords and start_coords and end_coords:
+                        first_pt = path_coords[0]
+                        last_pt = path_coords[-1]
+                        try:
+                            d_normal = calculate_distance(first_pt, start_coords) + calculate_distance(last_pt, end_coords)
+                            d_swapped = calculate_distance((first_pt[1], first_pt[0]), start_coords) + \
+                                        calculate_distance((last_pt[1], last_pt[0]), end_coords)
+                            if d_swapped + 1e-6 < d_normal:
+                                path_coords = [(lat, lon) for lon, lat in path_coords]
+                        except Exception as _:
+                            pass
+            except Exception as e:
+                app.logger.error(f"Error parsing geojson for history {history_id}: {str(e)}")
+
+        start_location = None
+        end_location = None
+        step_locations = []
+
+        # Fetch all locations for proximity checks
+        try:
+            cur.execute(
+                "SELECT burmese_name, english_name, address, ST_X(geom::geometry) AS lon, ST_Y(geom::geometry) AS lat "
+                "FROM locations;"
+            )
+            locations = cur.fetchall()
+
+            def find_nearest_location(point, locations, max_dist=500):
+                min_dist = float('inf')
+                nearest = None
+                for loc in locations:
+                    dist = calculate_distance(point, (loc['lon'], loc['lat']))
+                    if dist < min_dist and dist <= max_dist:
+                        min_dist = dist
+                        nearest = loc
+                return nearest
+
+            # Define points
+            if start_coords and end_coords:
+                start_point = start_coords
+                end_point = end_coords
+            else:
+                start_point = None
+                end_point = None
+
+            # Find nearest locations
+            nearest_start_location = find_nearest_location(start_point, locations) if start_point else None
+            nearest_end_location = find_nearest_location(end_point, locations) if end_point else None
+
+            close_start_location = find_nearest_location(start_point, locations, max_dist=50) if start_point else None
+            close_end_location = find_nearest_location(end_point, locations, max_dist=50) if end_point else None
+
+            # Set start and end locations
+            if close_start_location:
+                start_location = {
+                    "burmese_name": close_start_location["burmese_name"],
+                    "english_name": close_start_location["english_name"],
+                    "address": close_start_location["address"],
+                    "longitude": close_start_location["lon"],
+                    "latitude": close_start_location["lat"],
+                    "type": "defined_location"
+                }
+            elif start_point:
+                start_location = {
+                    "longitude": start_point[0],
+                    "latitude": start_point[1],
+                    "coordinates": f"{start_point[0]}, {start_point[1]}",
+                    "type": "user_input"
+                }
+
+            if close_end_location:
+                end_location = {
+                    "burmese_name": close_end_location["burmese_name"],
+                    "english_name": close_end_location["english_name"],
+                    "address": close_end_location["address"],
+                    "longitude": close_end_location["lon"],
+                    "latitude": close_end_location["lat"],
+                    "type": "defined_location"
+                }
+            elif end_point:
+                end_location = {
+                    "longitude": end_point[0],
+                    "latitude": end_point[1],
+                    "coordinates": f"{end_point[0]}, {end_point[1]}",
+                    "type": "user_input"
+                }
+
+            # Build step locations from path
+            added_locations = set()
+            for i, coord in enumerate(path_coords):
+                if i > 0 and coord == path_coords[i-1]:
+                    continue
+
+                coord_key = f"{coord[0]:.7f},{coord[1]:.7f}"
+                if coord_key in added_locations:
+                    continue
+
+                if i == 0:
+                    if close_start_location:
+                        step_locations.append({
+                            "burmese_name": close_start_location["burmese_name"],
+                            "english_name": close_start_location["english_name"],
+                            "address": close_start_location["address"],
+                            "longitude": close_start_location["lon"],
+                            "latitude": close_start_location["lat"],
+                            "type": "defined_location"
+                        })
+                        added_locations.add(f"{close_start_location['lon']:.7f},{close_start_location['lat']:.7f}")
+                    else:
+                        step_locations.append({
+                            "longitude": coord[0],
+                            "latitude": coord[1],
+                            "coordinates": f"{coord[0]}, {coord[1]}",
+                            "type": "user_input_start"
+                        })
+                        added_locations.add(coord_key)
+                elif i == len(path_coords) - 1:
+                    if close_end_location:
+                        close_coord_key = f"{close_end_location['lon']:.7f},{close_end_location['lat']:.7f}"
+                        if close_coord_key not in added_locations:
+                            step_locations.append({
+                                "burmese_name": close_end_location["burmese_name"],
+                                "english_name": close_end_location["english_name"],
+                                "address": close_end_location["address"],
+                                "longitude": close_end_location["lon"],
+                                "latitude": close_end_location["lat"],
+                                "type": "defined_location"
+                            })
+                            added_locations.add(close_coord_key)
+                    else:
+                        if coord_key not in added_locations:
+                            step_locations.append({
+                                "longitude": coord[0],
+                                "latitude": coord[1], 
+                                "coordinates": f"{coord[0]}, {coord[1]}",
+                                "type": "user_input_end"
+                            })
+                            added_locations.add(coord_key)
+                else:
+                    loc = find_nearest_location(coord, locations)
+                    if loc:
+                        loc_coord_key = f"{loc['lon']:.7f},{loc['lat']:.7f}"
+                        if loc_coord_key not in added_locations:
+                            step_locations.append({
+                                "burmese_name": loc["burmese_name"],
+                                "english_name": loc["english_name"],
+                                "address": loc["address"],
+                                "longitude": loc["lon"],
+                                "latitude": loc["lat"],
+                                "type": "defined_location"
+                            })
+                            added_locations.add(loc_coord_key)
+                    else:
+                        if coord_key not in added_locations:
+                            step_locations.append({
+                                "longitude": coord[0],
+                                "latitude": coord[1],
+                                "coordinates": f"{coord[0]}, {coord[1]}",
+                                "type": "road_point"
+                            })
+                            added_locations.add(coord_key)
+        except Exception as e:
+            app.logger.error(f"Error building locations for history {history_id}: {str(e)}")
+
+        # Build response matching requested structure
+        response_obj = {
+            "is_success": True,
             "route_id": item['route_id'],
-            "accessed_at": item['accessed_at'].isoformat(),
-            "start": item['start_name'],
-            "end": item['end_name'],
             "distance": item['total_distance_m'],
-            "duration": item['duration_min'],
-            "route": json.loads(item['geojson']) if item['geojson'] else None,
-            "road_names": road_names
+            "estimated_time": (item['duration_min'] * 60.0) if item['duration_min'] is not None else None,
+            "route": ({
+                "type": "Feature",
+                "properties": {},
+                "geometry": json.loads(item['geojson'])
+            } if item['geojson'] else None),
+            "road_names": road_names,
+            "step_locations": step_locations,
+            "start_location": start_location,
+            "end_location": end_location
         }
 
-        return jsonify({"is_success": True, "history": history_item}), 200
+        return jsonify(response_obj), 200
     except Exception as e:
         app.logger.error(f"Error in get_history_by_id: {str(e)}")
         return jsonify({"is_success": False, "msg": "Internal server error"}), 500

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface Place {
   id: string;
   name: string;
@@ -9,13 +10,15 @@ export interface Place {
   rating?: number;
   visits?: number;
   lastVisited?: string;
+  lat?: number;
+  lon?: number;
 }
 
 export interface User {
-  _id: string;
-  username: string;
-  hasEmailConfig?: boolean;
-  token: string;
+  email: string;
+  id: string;
+  is_admin: boolean;
+  username: "tuntun";
 }
 
 export interface LoginRequest {

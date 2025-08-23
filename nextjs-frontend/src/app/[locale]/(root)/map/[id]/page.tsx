@@ -5,11 +5,9 @@ type Props = {
 };
 
 async function page({ params }: Props) {
-    const id = (await params).id;
-
-
+    const param = (await params);
     return (
-        <Map accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string} />
+        <Map id={param.id} />
     )
 }
 

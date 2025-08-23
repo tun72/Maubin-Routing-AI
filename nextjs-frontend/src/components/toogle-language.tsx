@@ -11,11 +11,11 @@ function LanguageToogle() {
                 <Languages className='w-5 h-5' /></span></DropdownMenuTrigger>
             <DropdownMenuContent className='bg-white/80  dark:bg-white/10'>
                 <DropdownMenuItem>
-                    <Link href={"mm"}>Myanmar</Link>
+                    <Link href={"/mm"}>Myanmar</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                    <Link href={"en"}>English</Link>
+                    <Link href={"/en"}>English</Link>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

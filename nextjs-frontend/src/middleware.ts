@@ -7,13 +7,17 @@ export const config = {
   // Match only internationalized pathnames
   matcher: [
     "/",
+    "/(en|mm)/:path*",
     "/home",
+    "/(en|mm)/:path*",
     "/new-place",
+    "/(en|mm)/:path",
     "/admin",
-    "/admin/:path",
-    "/admin/:path/:path",
-    "/map/:path",
+    "/(en|mm)/:path",
     "/(login|signup)",
     "/(en|mm)/:path",
+    "/admin/:path",
+    "/map/:path",
+    "/admin/:path/:path",
   ],
 };

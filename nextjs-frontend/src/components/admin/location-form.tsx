@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
@@ -11,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useLocationStore } from "@/store/use-location-store"
 
 const locationSchema = z.object({
     burmese_name: z.string().min(1, "Burmese name is required"),
@@ -25,25 +27,17 @@ const locationSchema = z.object({
 type LocationFormData = z.infer<typeof locationSchema>
 
 const locationTypes = [
-    "restaurant",
-    "hotel",
-    "attraction",
-    "shop",
-    "hospital",
-    "school",
-    "temple",
-    "market",
-    "park",
-    "other",
+    'restaurant', 'hospital', 'gas_station', 'landmark',
+    'intersection', 'park', 'school', 'store', 'pagoda',
+    'museum', 'library', 'hotel', 'office', 'bank', 'pharmacy', 'university', 'other'
+
 ]
 
 export default function LocationForm({
     onSubmit,
 }: { onSubmit: (data: LocationFormData) => Promise<{ success: boolean; error?: string }> }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
-
     const router = useRouter()
-
     const {
         register,
         handleSubmit,
@@ -61,12 +55,18 @@ export default function LocationForm({
             type: "",
         },
     })
+    const { addLocation } = useLocationStore()
 
     const submitHandler = async (data: LocationFormData) => {
         setIsSubmitting(true)
 
         try {
-            await onSubmit(data)
+            const response = await onSubmit(data) as { success: boolean, result: any }
+
+            if (!response.success) {
+                throw new Error("Error in loading response.")
+            }
+            addLocation({ ...response.result, lat: data.lat, lon: data.lon })
             router.push("/admin/locations")
         } catch (error) {
             console.log(error)
@@ -154,7 +154,7 @@ export default function LocationForm({
                                 type="number"
                                 step="0.000001"
                                 min="-90"
-                                max="90"
+                                max="100"
                                 {...register("lat", { valueAsNumber: true })}
                                 placeholder="16.8661"
                                 className={errors.lat ? "border-destructive" : ""}

@@ -17,10 +17,24 @@ export const postRoads = async (params: Roads) => {
   try {
     const result = await api.post("/admin/roads", params);
 
-    console.log(result);
-
-    if (result.status !== 200) {
+    if (result.status !== 201) {
       throw new Error("Roads not found");
+    }
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.log(error);
+    return { success: false, error: "Route creation error" };
+  }
+};
+
+export const deleteRoads = async (id: string) => {
+  try {
+    // const session = await auth();
+    // console.log(session?.user);
+
+    const result = await api.delete(`/admin/roads/${id}`);
+    if (result.status !== 200) {
+      throw new Error("Locations not found");
     }
     return { success: true };
   } catch (error) {

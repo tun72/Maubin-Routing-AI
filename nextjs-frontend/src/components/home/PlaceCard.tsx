@@ -1,17 +1,46 @@
+"use client"
 import type { Place } from "@/types/types"
 import { Clock, History, MapPin, Star } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import MapAction from "../MapAction"
+import { postRoutes } from "@/lib/user/action"
+import useLocationStore from "@/store/location-store"
+import { useRouter } from "next/navigation"
+
 
 interface PlaceCardProps {
     place: Place
     type: "favorite" | "recent"
+    lat?: number
+    lon?: number
+    isFav?: boolean
 }
 
-export const PlaceCard = ({ place, type }: PlaceCardProps) => {
+export const PlaceCard = ({ place, type, lat, lon, isFav = false }: PlaceCardProps) => {
+    const { getCoordinates } = useLocationStore()
+    const router = useRouter()
+    const coordinates = getCoordinates()
+
+
+    const handelLocation = async () => {
+        try {
+
+            if (!lat || !lon || !coordinates.lat || !coordinates.lon) {
+                return
+            }
+            const response = await postRoutes({ start_lat: lat, start_lon: lon, end_lat: coordinates.lat, end_lon: coordinates.lon })
+            const historyID = response.result.data.history_id
+            router.push(`/map/${historyID}`)
+
+        } catch {
+
+        }
+
+
+    }
     return (
-        <Card className="flex-shrink-0 w-full sm:w-80 md:w-72 lg:w-80 xl:w-72 bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg dark:shadow-gray-900/20 dark:hover:shadow-gray-900/30 transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-100 dark:border-gray-700">
+        <Card onClick={handelLocation} className="flex-shrink-0 w-full sm:w-80 md:w-72 lg:w-80 xl:w-72 bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg dark:shadow-gray-900/20 dark:hover:shadow-gray-900/30 transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-100 dark:border-gray-700">
             <CardHeader className="relative h-40 sm:h-40 md:h-30 lg:h-30 bg-white dark:bg-gray-800 p-0 overflow-hidden border-b border-gray-50 dark:border-gray-700">
                 <div className="absolute top-2 left-2 sm:left-3 flex items-center space-x-1 sm:space-x-2 z-30">
                     <span className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm border border-gray-200 dark:border-gray-600 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm dark:shadow-gray-900/20">
@@ -56,9 +85,15 @@ export const PlaceCard = ({ place, type }: PlaceCardProps) => {
                         <span>Last visited {place.lastVisited}</span>
                     </div>
                 )}
-                <Button className="w-full mt-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 text-white py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:shadow-md dark:hover:shadow-gray-900/30 transform hover:-translate-y-0.5 transition-all duration-200 border-0">
+
+                {isFav ? <Button className="w-full mt-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 text-white py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:shadow-md dark:hover:shadow-gray-900/30 transform hover:-translate-y-0.5 transition-all duration-200 border-0">
+                    Navigate Location
+                </Button> : <Button onClick={() => {
+                    router.push(`/map/${place.id}`)
+                }} className="w-full mt-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 text-white py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:shadow-md dark:hover:shadow-gray-900/30 transform hover:-translate-y-0.5 transition-all duration-200 border-0">
                     Navigate
-                </Button>
+                </Button>}
+
             </CardContent>
 
 

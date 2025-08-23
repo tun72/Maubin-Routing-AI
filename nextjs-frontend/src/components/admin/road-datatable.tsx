@@ -2,16 +2,16 @@
 
 import * as React from "react"
 import {
-    ColumnDef,
-    ColumnFiltersState,
+    type ColumnDef,
+    type ColumnFiltersState,
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
-    SortingState,
+    type SortingState,
     useReactTable,
-    VisibilityState,
+    type VisibilityState,
 } from "@tanstack/react-table"
 import { MoreHorizontal } from "lucide-react"
 
@@ -25,34 +25,57 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useRouter } from "next/navigation"
+import { Alert } from "../Alert"
+import { deleteRoads } from "@/lib/admin/roads"
 
 
-export type Location = {
-    id: string
-    burmese_name: string
-    english_name: string
-    total_length: number
-    geojson: string
-    is_oneway: boolean
-    length_m: number[]
-    road_type: string
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const RoadDelete = ({ row, onDataChange }: { row: any; onDataChange?: () => void }) => {
+    const router = useRouter()
+    const [isDeleting, setIsDeleting] = React.useState(false)
+
+    return (
+        <Alert
+            title="Delete Road"
+            content={"Are you sure ?"}
+            text={isDeleting ? "Deleting..." : "delete"}
+            disabled={isDeleting}
+            handler={async () => {
+                try {
+                    setIsDeleting(true)
+                    const result = await deleteRoads(row.getValue("id"))
+
+                    if (!result.success) {
+                        throw new Error("Error in deleting")
+                    }
+
+                    if (onDataChange) {
+                        onDataChange()
+                    } else {
+                        if (router) {
+                            router.push("/admin/roads")
+                        }
+                    }
+
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } catch (error: any) {
+                    console.log(error)
+                } finally {
+                    setIsDeleting(false)
+                }
+                return null
+            }}
+        />
+    )
 }
 
-export const columns: ColumnDef<Location>[] = [
+export const columns: ColumnDef<Road>[] = [
     {
         accessorKey: "id",
         header: "ID",
-        cell: ({ row }) => (
-            <div className="capitalize">{row.getValue("id")}</div>
-        ),
+        cell: ({ row }) => <div className="capitalize">{row.getValue("id")}</div>,
     },
     {
         accessorKey: "burmese_name",
@@ -78,9 +101,12 @@ export const columns: ColumnDef<Location>[] = [
 
     {
         id: "actions",
+        accessorKey: "id",
         enableHiding: false,
-        cell: ({ row }) => {
-            const payment = row.original
+        cell: ({ row, table }) => {
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const onDataChange = (table.options.meta as any)?.onDataChange
             return (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -91,12 +117,10 @@ export const columns: ColumnDef<Location>[] = [
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem
-                            onClick={() => navigator.clipboard.writeText(payment.id)}
-                        >
-                            Update
+                        <DropdownMenuItem >Update</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <RoadDelete row={row} onDataChange={onDataChange} />
                         </DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             )
@@ -105,15 +129,13 @@ export const columns: ColumnDef<Location>[] = [
 ]
 
 interface Data {
-    data: Location[]
+    data: Road[]
+    onDataChange?: () => void
 }
-export default function RoadDataTable({ data }: Data) {
+export default function RoadDataTable({ data, onDataChange }: Data) {
     const [sorting, setSorting] = React.useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-        []
-    )
-    const [columnVisibility, setColumnVisibility] =
-        React.useState<VisibilityState>({})
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
 
     const table = useReactTable({
@@ -127,6 +149,9 @@ export default function RoadDataTable({ data }: Data) {
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
+        meta: {
+            onDataChange,
+        },
         state: {
             sorting,
             columnFilters,
@@ -144,12 +169,7 @@ export default function RoadDataTable({ data }: Data) {
                             {headerGroup.headers.map((header) => {
                                 return (
                                     <TableHead key={header.id}>
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
+                                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                                     </TableHead>
                                 )
                             })}
@@ -159,32 +179,41 @@ export default function RoadDataTable({ data }: Data) {
                 <TableBody>
                     {table.getRowModel().rows?.length ? (
                         table.getRowModel().rows.map((row) => (
-                            <TableRow
-                                key={row.id}
-                                data-state={row.getIsSelected() && "selected"}
-                            >
+                            <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                                 {row.getVisibleCells().map((cell) => (
-                                    <TableCell key={cell.id}>
-                                        {flexRender(
-                                            cell.column.columnDef.cell,
-                                            cell.getContext()
-                                        )}
-                                    </TableCell>
+                                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                                 ))}
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell
-                                colSpan={columns.length}
-                                className="h-24 text-center"
-                            >
+                            <TableCell colSpan={columns.length} className="h-24 text-center">
                                 No results.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
             </Table>
+
+            <div className="flex items-center justify-end space-x-2 py-4 px-4">
+                <div className="text-muted-foreground flex-1 text-sm">
+                    {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s)
+                    selected.
+                </div>
+                <div className="space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        Previous
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+                        Next
+                    </Button>
+                </div>
+            </div>
         </div>
     )
 }
