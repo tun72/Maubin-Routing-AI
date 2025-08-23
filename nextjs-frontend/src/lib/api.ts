@@ -3,7 +3,7 @@ import axios from "axios";
 import { AuthResponse, LoginRequest, RegisterRequest } from "@/types/types";
 
 export const api = axios.create({
-  baseURL: "https://maubin-routing.onrender.com",
+  baseURL: "http://127.0.0.1:4000",
   headers: {
     "Content-Type": "application/json",
   },

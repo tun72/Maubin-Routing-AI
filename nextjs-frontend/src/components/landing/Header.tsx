@@ -76,7 +76,7 @@ function Header() {
                             <Link href="#gallery" onClick={() => setIsMenuOpen(false)}>Gallery</Link>
                             <Link href="#faq" onClick={() => setIsMenuOpen(false)}>FAQ</Link>
                             <Link href="#contact" onClick={() => setIsMenuOpen(false)}>Contact</Link>
-                            <Link href={"/register"}
+                            <Link href={"/home"}
                                 className={`px-6 py-2 hover:no-underline bg-gradient-to-r dark:from-cyan-500 dark:to-purple-600 dark:hover:from-cyan-400 dark:hover:to-purple-500  from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg dark:hover:shadow-purple-500/25 hover:shadow-blue-500/25 text-white`}
                             >
                                 Get Started
