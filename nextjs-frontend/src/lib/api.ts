@@ -3,7 +3,7 @@ import axios from "axios";
 import { AuthResponse, LoginRequest, RegisterRequest } from "@/types/types";
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_BACKEND_URL,
+  baseURL: "https://maubin-routing.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },
@@ -15,8 +15,6 @@ api.interceptors.request.use(
     if (typeof window !== "undefined") {
       // Get token from Zustand store's persisted state in localStorage
       const authState = localStorage.getItem("auth-storage");
-
-      console.log(authState);
 
       if (authState) {
         try {
