@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Metadata } from "next";
 import { Inter } from 'next/font/google';
 import "./globals.css";
@@ -18,17 +19,15 @@ export const metadata: Metadata = {
   },
 };
 
-
-
 export default async function RootLayout({
   children,
   params,
 }: Readonly<{
   children: React.ReactNode;
-  params: { locale: Locale };
+  params: any;
 }>) {
 
-  const { locale } = await params;
+  const { locale } = params;
   if (!routing.locales.includes(locale as Locale)) {
     notFound();
   }
