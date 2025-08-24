@@ -30,6 +30,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert } from "@/components/Alert"
 import { deleteLocations } from "@/lib/admin/locations"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 
 
@@ -105,6 +106,7 @@ export const columns: ColumnDef<Location>[] = [
 
     {
         id: "actions",
+        header: "actions",
         accessorKey: "id",
         enableHiding: false,
         cell: ({ row, table }) => {
@@ -122,8 +124,8 @@ export const columns: ColumnDef<Location>[] = [
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <hr />
 
-                        <DropdownMenuItem className="mb-2 mt-2">
-                            Update
+                        <DropdownMenuItem className="mb-2 mt-2" asChild>
+                            <Link href={`/admin/locations/update/${row.getValue("id")}`}>Update</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                             <LocationDelete row={row} onDataChange={onDataChange} />

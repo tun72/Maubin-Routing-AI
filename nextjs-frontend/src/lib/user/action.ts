@@ -1,6 +1,19 @@
 import { formatData } from "@/util/locationFormat";
 import { api } from "../api";
 
+export const getLocations = async () => {
+  try {
+    const result = await api.get("/locations");
+    if (result.status !== 200) {
+      throw new Error("Roads not found");
+    }
+    return { locations: result.data };
+  } catch (error) {
+    console.log(error);
+    return { success: false, error: "Sign In error" };
+  }
+};
+
 export const postRoutes = async (params: Routes) => {
   try {
     const result = await api.post("/routes", params);

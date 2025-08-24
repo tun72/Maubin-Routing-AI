@@ -14,6 +14,7 @@ interface Locations {
   lon: number;
   lat: number;
   type: string;
+  id?: string;
 }
 
 interface Roads {

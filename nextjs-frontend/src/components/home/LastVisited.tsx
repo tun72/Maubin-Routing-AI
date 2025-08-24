@@ -82,7 +82,7 @@ function LastVisited() {
                     </div>
                 </div>
 
-                <CarouselContent className="-ml-1">
+                <CarouselContent className="-ml-1 my-4">
                     {loading ? (
                         Array.from({ length: 4 }).map((_, index) => (
                             <CarouselItem key={index} className="pl-1 lg:basis-1/4 md:basis-1/3">

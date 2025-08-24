@@ -60,7 +60,7 @@ export const PlaceCard = ({ place, type, lat, lon, isFav = false }: PlaceCardPro
                     {place.name}
                 </CardTitle>
 
-                <CardDescription className="text-gray-500 dark:text-gray-400 text-xs mb-1.5 sm:mb-2 line-clamp-2">{place.address}</CardDescription>
+                <CardDescription className="text-gray-500 dark:text-gray-400 text-xs mb-1.5 sm:mb-2 line-clamp-1">{place.address}</CardDescription>
 
                 <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                     <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">

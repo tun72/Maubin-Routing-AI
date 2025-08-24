@@ -34,10 +34,15 @@ const locationTypes = [
 ]
 
 export default function LocationForm({
+    type = "CREATE",
     onSubmit,
-}: { onSubmit: (data: LocationFormData) => Promise<{ success: boolean; error?: string }> }) {
+    defaultLocations,
+    id
+}: { onSubmit: (data: LocationFormData) => Promise<{ success: boolean; error?: string }>, type: "UPDATE" | "CREATE", defaultLocations: LocationFormData, id?: string }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const router = useRouter()
+
+
     const {
         register,
         handleSubmit,
@@ -45,28 +50,38 @@ export default function LocationForm({
         formState: { errors },
     } = useForm<LocationFormData>({
         resolver: zodResolver(locationSchema),
-        defaultValues: {
-            burmese_name: "",
-            english_name: "",
-            address: "",
-            description: "",
-            lon: 0,
-            lat: 0,
-            type: "",
-        },
+        defaultValues: defaultLocations,
     })
-    const { addLocation } = useLocationStore()
+
+    console.log(defaultLocations);
+
+    const { addLocation, updateLocation } = useLocationStore()
 
     const submitHandler = async (data: LocationFormData) => {
         setIsSubmitting(true)
 
         try {
-            const response = await onSubmit(data) as { success: boolean, result: any }
+
+            const submitData = { ...data } as Locations
+            if (type === "UPDATE") {
+                submitData.id = id
+            }
+            const response = await onSubmit(submitData) as { success: boolean, result: any }
+
+
 
             if (!response.success) {
                 throw new Error("Error in loading response.")
             }
-            addLocation({ ...response.result, lat: data.lat, lon: data.lon })
+            if (type === "CREATE") {
+                addLocation({ ...response.result, lat: data.lat, lon: data.lon })
+            } else {
+                // console.log(submitDat);
+
+                updateLocation(id as string, { burmese_name: submitData.burmese_name, english_name: submitData.english_name, lat: data.lat, lon: data.lon, address: submitData.address, type: submitData.type })
+                console.log("updated");
+
+            }
             router.push("/admin/locations")
         } catch (error) {
             console.log(error)
@@ -165,11 +180,11 @@ export default function LocationForm({
 
                     <div className="space-y-2">
                         <Label htmlFor="type">Location Type</Label>
-                        <Select onValueChange={(value) => setValue("type", value)}>
+                        <Select onValueChange={(value) => setValue("type", value)} defaultValue={defaultLocations.type ? defaultLocations.type : "other"}>
                             <SelectTrigger className={errors.type ? "border-destructive" : ""}>
                                 <SelectValue placeholder="Select location type" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent defaultValue={"other"}>
                                 {locationTypes.map((type) => (
                                     <SelectItem key={type} value={type}>
                                         {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -189,7 +204,7 @@ export default function LocationForm({
                         ) : (
                             <>
                                 <Plus className="mr-2 h-4 w-4" />
-                                Create Location
+                                {type === "CREATE" ? "Create Location" : "Update Location"}
                             </>
                         )}
                     </Button>

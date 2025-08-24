@@ -16,6 +16,7 @@ interface LocationState {
   updateLocation: (id: string, updates: Partial<Location>) => void;
   removeLocation: (id: string) => void;
   clearError: () => void;
+  getLocationById: (id: string) => Location | null;
 }
 
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - longer cache since we're persisting
@@ -62,6 +63,19 @@ export const useLocationStore = create<LocationState>()(
             loading: false,
           });
         }
+      },
+
+      getLocationById: (id) => {
+        const { locations } = get();
+
+        console.log(locations);
+
+        // if (!locations.length) {
+        //   return {};
+        // }
+        const location = locations.filter((location) => location.id === id);
+
+        return location.length ? location[0] : null;
       },
 
       reloadLocations: async () => {

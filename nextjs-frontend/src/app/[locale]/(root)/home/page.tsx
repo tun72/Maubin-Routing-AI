@@ -42,9 +42,6 @@ const Page = () => {
                 <LastVisited />
                 <FavouritePlaces />
 
-
-
-
             </div>
         </section>
     );

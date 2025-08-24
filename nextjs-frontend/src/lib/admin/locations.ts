@@ -51,8 +51,7 @@ export const updateLocations = async (params: Locations) => {
   try {
     // const session = await auth();
     // console.log(session?.user);
-
-    const result = await api.put(`/admin/locations`, params);
+    const result = await api.put(`/admin/locations/${params.id}`, params);
 
     if (result.status !== 200) {
       throw new Error("Locations not found");
