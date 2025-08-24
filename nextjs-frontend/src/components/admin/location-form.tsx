@@ -20,7 +20,7 @@ const locationSchema = z.object({
     address: z.string().min(1, "Address is required"),
     description: z.string().min(1, "Description is required"),
     lon: z.number().min(-180).max(180, "Longitude must be between -180 and 180"),
-    lat: z.number().min(-90).max(90, "Latitude must be between -90 and 90"),
+    lat: z.number().min(-180).max(100, "Latitude must be between -90 and 90"),
     type: z.string().min(1, "Location type is required"),
 })
 
@@ -137,7 +137,7 @@ export default function LocationForm({
                             <Input
                                 id="lon"
                                 type="number"
-                                step="0.000001"
+                                step="00.00000001"
                                 min="-180"
                                 max="180"
                                 {...register("lon", { valueAsNumber: true })}
@@ -152,7 +152,7 @@ export default function LocationForm({
                             <Input
                                 id="lat"
                                 type="number"
-                                step="0.000001"
+                                step="0.00000001"
                                 min="-90"
                                 max="100"
                                 {...register("lat", { valueAsNumber: true })}
