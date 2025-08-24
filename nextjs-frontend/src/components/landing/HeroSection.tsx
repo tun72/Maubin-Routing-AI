@@ -31,11 +31,11 @@ function HeroSection() {
 
 
                 <h1 className={`text-4xl md:text-6xl font-extrabold leading-tight`}>
-                    <span className={`bg-gradient-to-r ${isDark ? 'from-white via-cyan-200 to-purple-200' : 'from-gray-900 via-blue-700 to-purple-700'} inline-block h-22 bg-clip-text  text-transparent`}>
+                    <span className={`bg-gradient-to-r ${isDark ? 'from-white via-cyan-200 to-purple-200' : 'from-gray-900 via-blue-700 to-purple-700'} inline-block h-14 lg:h-22 bg-clip-text  text-transparent`}>
                         {t("hero1")}
                     </span>{" "}
-                    {t("hero2")}<br />
-                    <span className={`bg-gradient-to-r ${customTheme.accent} bg-clip-text inline-block h-22 text-transparent`}>
+                    {t("hero2")}
+                    <span className={`bg-gradient-to-r ${customTheme.accent} bg-clip-text inline-block h-14 lg:h-22 text-transparent`}>
                         {t("hero3")}
                     </span>{" "}
                     {t("hero4")}

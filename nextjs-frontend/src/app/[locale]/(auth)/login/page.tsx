@@ -2,7 +2,8 @@
 import AuthForm from "@/components/login-form"
 import { SignInSchema } from "@/lib/validation"
 import { useAuthStore, useIsHydrated } from "@/store/auth-store"
-import { useRouter } from "next/router"
+import { useRouter } from "next/navigation"
+
 import { useEffect, useState } from "react"
 
 export default function LoginPage() {

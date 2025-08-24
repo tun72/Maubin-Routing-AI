@@ -36,7 +36,7 @@ function Header() {
                         <div className={`w-10 h-10 bg-gradient-to-r dark:from-cyan-400 dark:to-purple-500 from-blue-500 to-purple-600 rounded-xl flex items-center justify-center`}>
                             <Navigation className="w-6 h-6 text-white" />
                         </div>
-                        <span className={`text-2xl  flex items-center font-bold bg-gradient-to-r ${customTheme.accent} bg-clip-text h-10 text-transparent`}>
+                        <span className={`text-md lg:text-2xl  flex items-center font-bold bg-gradient-to-r ${customTheme.accent} bg-clip-text h-10 text-transparent`}>
                             {t("title")}
                         </span>
                     </div>

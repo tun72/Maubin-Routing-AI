@@ -1,0 +1,299 @@
+{
+    "location 1": {
+        "burmese_name": "မြို့ရှောင် ၁",
+        "english_name": "Myo Shaung 1",
+        "geom": {
+            "latitude": 16.74481312706638,
+            "longitude": 95.64938969216321
+        },
+        "type": "intersection"
+    },
+    "location 2": {
+        "burmese_name": "မြို့ရှောင် ၂",
+        "english_name": "Myo Shaung 2",
+        "geom": {
+            "latitude": 16.744459030990143,
+            "longitude": 95.64886545396489
+        },
+        "type": "intersection"
+    },
+    "location 3": {
+        "burmese_name": "မြို့ရှောင် ၃",
+        "english_name": "Myo Shaung 3",
+        "geom": {
+            "latitude": 16.741411436809308,
+            "longitude": 95.64639234970996
+        },
+        "type": "intersection"
+    },
+    "location 4": {
+        "burmese_name": "မြို့ရှောင် ၃လမ်း",
+        "english_name": "Myo Shaung 3 Street",
+        "geom": {
+            "latitude": 16.73713121675262,
+            "longitude": 95.64372166560919
+        },
+        "type": "intersection"
+    },
+    "location 5": {
+        "burmese_name": "မြို့ရှောင် ဘုရားလမ်း",
+        "english_name": "Myo Shaung Pagoda Street",
+        "geom": {
+            "latitude": 16.735927761438713,
+            "longitude": 95.64322612545469
+        },
+        "type": "intersection"
+    },
+    "location 6": {
+        "burmese_name": "မြို့ရှောင် ရေလဲလမ်း",
+        "english_name": "Myo Shaung Yele Road",
+        "geom": {
+            "latitude": 16.728832155868364,
+            "longitude": 95.6407642819606
+        },
+        "type": "intersection"
+    },
+    "location 7": {
+        "burmese_name": "ခိုင်ရွှေဝါလမ်း ရေလဲလမ်း",
+        "english_name": "Khaing Shwe Wah Yele Road",
+        "geom": {
+            "latitude": 16.72802849723179,
+            "longitude": 95.64793837161184
+        },
+        "type": "intersection"
+    },
+    "location 8": {
+        "burmese_name": "အောင်ဇေယျလမ်း ရေလဲလမ်း",
+        "english_name": "Aung Zayyar Yele Road",
+        "geom": {
+            "latitude": 16.72776131968716,
+            "longitude": 95.65039406291534
+        },
+        "type": "intersection"
+    },
+    "location 9": {
+        "burmese_name": "အောင်ဇေယျလမ်း ၉လမ်း",
+        "english_name": "Aung Zayyar Street 9th Street",
+        "geom": {
+            "latitude": 16.728528553651426,
+            "longitude": 95.65062613837114
+        },
+        "type": "intersection"
+    },
+    "location 10": {
+        "burmese_name": "အောင်ဇေယျလမ်း ၈လမ်း",
+        "english_name": "Aung Zayyar Street 8th Street",
+        "geom": {
+            "latitude": 16.729111314557148,
+            "longitude": 95.65088795934653
+        },
+        "type": "intersection"
+    },
+    "location 11": {
+        "burmese_name": "အောင်ဇေယျလမ်း ၇လမ်း",
+        "english_name": "Aung Zayyar Street 7th Street",
+        "geom": {
+            "latitude": 16.729741753589135,
+            "longitude": 95.65111727768767
+        },
+        "type": "intersection"
+    },
+    "location 12": {
+        "burmese_name": "အောင်ဇေယျလမ်း ၆လမ်း",
+        "english_name": "Aung Zayyar Street 6th Street",
+        "geom": {
+            "latitude": 16.730461170960165,
+            "longitude": 95.65141183314572
+        },
+        "type": "intersection"
+    },
+    "location 13": {
+        "burmese_name": "အောင်ဇေယျလမ်း ၅လမ်း",
+        "english_name": "Aung Zayyar Street 5th Street",
+        "geom": {
+            "latitude": 16.73115976049179,
+            "longitude": 95.65164312837177
+        },
+        "type": "intersection"
+    },
+    "location 14": {
+        "burmese_name": "အောင်ဇေယျလမ်း ၄လမ်း",
+        "english_name": "Aung Zayyar Street 4th Street",
+        "geom": {
+            "latitude": 16.7317478539406,
+            "longitude": 95.65192526115084
+        },
+        "type": "intersection"
+    },
+    "location 15": {
+        "burmese_name": "အောင်ဇေယျလမ်း ကျောင်းလမ်း",
+        "english_name": "Aung Zayyar Street Kyaung Street",
+        "geom": {
+            "latitude": 16.732324900445416,
+            "longitude": 95.65211993367029
+        },
+        "type": "intersection"
+    },
+    "location 16": {
+        "burmese_name": "အောင်ဇေယျလမ်း ဘုရားလမ်း",
+        "english_name": "Aung Zayyar Street Pagoda Street",
+        "geom": {
+            "latitude": 16.7334214482927,
+            "longitude": 95.65256925145734
+        },
+        "type": "intersection"
+    },
+    "location 17": {
+        "burmese_name": "အောင်ဇေယျလမ်း စျေးလမ်း",
+        "english_name": "Aung Zayyar Street Market Street",
+        "geom": {
+            "latitude": 16.73437494475757,
+            "longitude": 95.65298861461567
+        },
+        "type": "intersection"
+    },
+    "location 18": {
+        "burmese_name": "အောင်ဇေယျလမ်း ၃လမ်း",
+        "english_name": "Aung Zayyar Street 3rd Street",
+        "geom": {
+            "latitude": 16.73510147407508,
+            "longitude": 95.65342571843941
+        },
+        "type": "intersection"
+    },
+    "location 19": {
+        "burmese_name": "အောင်ဇေယျလမ်း ၂လမ်း",
+        "english_name": "Aung Zayyar Street 2nd Street",
+        "geom": {
+            "latitude": 16.735498705282986,
+            "longitude": 95.65363938107895
+        },
+        "type": "intersection"
+    },
+    "location 20": {
+        "burmese_name": "ခိုင်ရွှေဝါလမ်း ဘုရားလမ်း",
+        "english_name": "Khaing Shwe Wah Street Pagoda Street",
+        "geom": {
+            "latitude": 16.73484541219906,
+            "longitude": 95.64898291494455
+        },
+        "type": "intersection"
+    },
+    "location 21": {
+        "burmese_name": "‌ရေလဲလမ်း တေဇလမ်း",
+        "english_name": "Yele Road Tayza Road",
+        "geom": {
+            "latitude": 16.727463669232655,
+            "longitude": 95.65286230525489
+        },
+        "type": "intersection"
+    },
+    "location 22": {
+        "burmese_name": "‌ရေလဲလမ်း ကမ်းနားလမ်း",
+        "english_name": "Yele Road Kannar Road",
+        "geom": {
+            "latitude": 16.727394836044756,
+            "longitude": 95.653803519874
+        },
+        "type": "intersection"
+    },
+    "location 23": {
+        "burmese_name": "‌ကျောင်းလမ်း ကမ်းနားလမ်း",
+        "english_name": "Khaung Street Kanna Road",
+        "geom": {
+            "latitude": 16.731086192173425,
+            "longitude": 95.6548385290869
+        },
+        "type": "intersection"
+    },
+    "location 24": {
+        "burmese_name": "‌ကျောင်းလမ်း တေဇလမ်း",
+        "english_name": "Khaung Street Tayza Road",
+        "geom": {
+            "latitude": 16.731484742884426,
+            "longitude": 95.6539581197063
+        },
+        "type": "intersection"
+    },
+    "location 25": {
+        "burmese_name": "‌တေဇလမ်း ဘုရားလမ်း",
+        "english_name": "Tayza Road Pagoda Street",
+        "geom": {
+            "latitude": 16.7326126243952,
+            "longitude": 95.65457588514194
+        },
+        "type": "intersection"
+    },
+    "location 26": {
+        "burmese_name": "‌ကမ်းနားလမ်း ဘုရားလမ်း",
+        "english_name": "Kannar Road Pagoda Street",
+        "geom": {
+            "latitude": 16.73231515375834,
+            "longitude": 95.65535681645977
+        },
+        "type": "intersection"
+    },
+    "location 27": {
+        "burmese_name": "‌ကမ်းနားလမ်း စျေးလမ်း",
+        "english_name": "Kannar Road Market Street",
+        "geom": {
+            "latitude": 16.733177695699045,
+            "longitude": 95.65573013182625
+        },
+        "type": "intersection"
+    },
+    "location 28": {
+        "burmese_name": "တေဇလမ်း စျေးလမ်း",
+        "english_name": "Tayza Road Market Street",
+        "geom": {
+            "latitude": 16.73350219550195,
+            "longitude": 95.65498215559403
+        },
+        "type": "intersection"
+    },
+    "location 29": {
+        "burmese_name": "တေဇလမ်း ၃လမ်း",
+        "english_name": "Tayza Road 3rd Street",
+        "geom": {
+            "latitude": 16.734230515287933,
+            "longitude": 95.65534108378911
+        },
+        "type": "intersection"
+    },
+    "location 30": {
+        "burmese_name": "ကမ်းနားလမ်း ၃လမ်း",
+        "english_name": "Kannar Road 3rd Street",
+        "geom": {
+            "latitude": 16.733942072140977,
+            "longitude": 95.65607400010326
+        },
+        "type": "intersection"
+    },
+    "location 31": {
+        "burmese_name": "ကမ်းနားလမ်း စည်ပင်လမ်း",
+        "english_name": "Kannar Road Sipin Street",
+        "geom": {
+            "latitude": 16.736854153496868,
+            "longitude": 95.65752488628252
+        },
+        "type": "intersection"
+    },
+    "location 32": {
+        "burmese_name": "ကမ်းနားလမ်း ဆည်မြောင်းလမ်း",
+        "english_name": "Kannar Road Sal Myaung Street",
+        "geom": {
+            "latitude": 16.73820924547584,
+            "longitude": 95.65786430504225
+        },
+        "type": "intersection"
+    },
+    "location 33": {
+        "burmese_name": "ကမ်းနားလမ်း ၁လမ်း",
+        "english_name": "Kannar Road 1st Street",
+        "geom": {
+            "latitude": 16.73965872940683,
+            "longitude": 95.65861978786715
+        },
+        "type": "intersection"
+    },
+}

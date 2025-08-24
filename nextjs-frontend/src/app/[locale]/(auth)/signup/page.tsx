@@ -2,8 +2,8 @@
 import AuthForm from "@/components/login-form";
 import { signUpSchema } from "@/lib/validation";
 import { useAuthStore, useIsHydrated } from "@/store/auth-store";
-import { GalleryVerticalEnd } from "lucide-react";
-import { useRouter } from "next/router";
+import { GalleryVerticalEnd } from "lucide-react"; import { useRouter } from "next/navigation";
+;
 import { useEffect, useState } from "react";
 
 
