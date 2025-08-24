@@ -22,21 +22,13 @@ app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET')
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(days=7)
 
 # Initialize extensions
-# origins = os.environ.get('ORIGIN', '').split(",")
+origins = os.environ.get('ORIGIN', '').split(",")
 
-CORS(
-    app,
-    resources={r"/*": {"origins": [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "https://maubin-routing-ai.vercel.app"
-    ]}},
-    supports_credentials=True,
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"]
-)
+CORS(app, 
+     origins=origins,
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 jwt = JWTManager(app)
 
 # Database connection function
@@ -434,6 +426,7 @@ def update_profile():
         cur.close()
         conn.close()
 
+# === USER ROUTES ===
 @app.route('/routes', methods=['POST'])
 @jwt_required()
 def plan_route():
@@ -1215,7 +1208,24 @@ def get_saved_locations():
         cur.close()
         conn.close()
 
-# Admin routes
+@app.route('/user/locations', methods=['GET'])
+@jwt_required()
+def get_user_locations():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    try:
+        cur.execute(
+            "SELECT id, burmese_name, english_name, address, type, description, "
+            "ST_X(ST_GeomFromEWKB(geom::geometry)) AS lon, ST_Y(ST_GeomFromEWKB(geom::geometry)) AS lat "
+            "FROM locations;"
+        )
+        locations = cur.fetchall()
+        return jsonify({"is_success": True, "data": [dict(loc) for loc in locations]}), 200
+    finally:
+        cur.close()
+        conn.close()
+
+# === ADMIN ROUTES ===
 @app.route('/admin/locations', methods=['POST'])
 @admin_required
 def create_location():
@@ -1278,6 +1288,27 @@ def get_all_locations():
         )
         locations = cur.fetchall()
         return jsonify({"is_success": True, "data": [dict(loc) for loc in locations]}), 200
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/admin/locations/<uuid:location_id>', methods=['GET'])
+@admin_required
+def get_location(location_id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    try:
+        cur.execute(
+            "SELECT id, burmese_name, english_name, address, type, description, "
+            "ST_X(ST_GeomFromEWKB(geom::geometry)) AS lon, ST_Y(ST_GeomFromEWKB(geom::geometry)) AS lat "
+            "FROM locations WHERE id = %s;",
+            (str(location_id),)
+        )
+        location = cur.fetchone()
+        if not location:
+            return jsonify({"is_success": False, "msg": "Location not found"}), 404
+
+        return jsonify({"is_success": True, "data": dict(location)}), 200
     finally:
         cur.close()
         conn.close()
@@ -1446,6 +1477,33 @@ def get_all_roads():
             result_roads.append(road_dict)
 
         return jsonify({"is_success": True, "data": result_roads}), 200
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/admin/roads/<uuid:road_id>', methods=['GET'])
+@admin_required
+def get_road(road_id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    try:
+        cur.execute(
+            "SELECT id, burmese_name, english_name, road_type, is_oneway, length_m, "
+            "ST_AsGeoJSON(geom::geometry) AS geojson "
+            "FROM roads WHERE id = %s;",
+            (str(road_id),)
+        )
+        road = cur.fetchone()
+        if not road:
+            return jsonify({"is_success": False, "msg": "Road not found"}), 404
+
+        road_dict = dict(road)
+        if road_dict['length_m'] and isinstance(road_dict['length_m'], list):
+            road_dict['total_length'] = sum(road_dict['length_m'])
+        else:
+            road_dict['total_length'] = road_dict['length_m'] or 0
+
+        return jsonify({"is_success": True, "data": road_dict}), 200
     finally:
         cur.close()
         conn.close()

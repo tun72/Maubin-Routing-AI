@@ -3,13 +3,15 @@ import axios from "axios";
 import { AuthResponse, LoginRequest, RegisterRequest } from "@/types/types";
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
+  baseURL: "https://maubin-navigation-api.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Interceptor to add auth token to requests
+// Interceptor to
+// add auth token to requests
+console.log("https://maubin-navigation-api.onrender.com");
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
