@@ -27,9 +27,23 @@ const locationSchema = z.object({
 type LocationFormData = z.infer<typeof locationSchema>
 
 const locationTypes = [
-    'restaurant', 'hospital', 'gas_station', 'landmark',
-    'intersection', 'park', 'school', 'store', 'pagoda',
-    'museum', 'library', 'hotel', 'office', 'bank', 'pharmacy', 'university', 'other'
+    'bank',
+    'gas_station',
+    'hospital',
+    'hotel',
+    'intersection',
+    'landmark',
+    'library',
+    'museum',
+    'office',
+    'pagoda',
+    'park',
+    'pharmacy',
+    'restaurant',
+    'school',
+    'store',
+    'university',
+    'other'
 
 ]
 
@@ -152,7 +166,7 @@ export default function LocationForm({
                             <Input
                                 id="lon"
                                 type="number"
-                                step="00.00000001"
+                                step="00.0000000000000001"
                                 min="-180"
                                 max="180"
                                 {...register("lon", { valueAsNumber: true })}
@@ -167,7 +181,7 @@ export default function LocationForm({
                             <Input
                                 id="lat"
                                 type="number"
-                                step="0.00000001"
+                                step="0.00000000000000001"
                                 min="-90"
                                 max="100"
                                 {...register("lat", { valueAsNumber: true })}
