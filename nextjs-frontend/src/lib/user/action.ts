@@ -3,7 +3,7 @@ import { api } from "../api";
 
 export const getLocations = async () => {
   try {
-    const result = await api.get("/locations");
+    const result = await api.get("/user/locations");
     if (result.status !== 200) {
       throw new Error("Roads not found");
     }

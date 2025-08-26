@@ -6,12 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState, useEffect } from "react"
 import { LocationCombobox, type Location } from "./location-combox"
-import { getLocations } from "@/lib/admin/locations"
-import { postRoutes } from "@/lib/user/action"
+
+import { getLocations, postRoutes } from "@/lib/user/action"
 import LoadingLocation from "./location-loading"
 import LocationError from "./location-error"
 import { Button } from "../ui/button"
 import Link from "next/link"
+
 
 const searchFormSchema = z.object({
     startLocationId: z.string().min(1, "Please select a starting location"),
@@ -201,6 +202,7 @@ function SearchLocation() {
                                     </div>
                                 </div>
                             </div>
+
                         ) : isRouteReady ? (
                             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-emerald-500/20 dark:from-green-400/20 dark:to-emerald-400/20 backdrop-blur-md rounded-2xl z-10">
                                 <div className="text-center p-8 bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl border border-white/50 dark:border-gray-700/50">
@@ -220,6 +222,7 @@ function SearchLocation() {
                                 </div>
                             </div>
                         ) : (
+                            // <AnimatedMap />
                             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-100/80 to-purple-200/80 dark:from-gray-700/80 dark:to-gray-600/80 backdrop-blur-sm rounded-2xl">
                                 <div className="text-center">
                                     <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-cyan-500 dark:to-purple-500 rounded-full flex items-center justify-center animate-pulse">

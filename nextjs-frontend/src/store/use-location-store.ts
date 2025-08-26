@@ -85,7 +85,7 @@ export const useLocationStore = create<LocationState>()(
 
       addLocation: (location) => {
         set((state) => ({
-          locations: [...state.locations, location],
+          locations: [location, ...state.locations],
         }));
       },
 

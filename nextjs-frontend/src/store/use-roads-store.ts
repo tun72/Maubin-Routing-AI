@@ -16,6 +16,7 @@ interface RoadState {
   updateRoad: (id: string, updates: Partial<Road>) => void;
   removeRoad: (id: string) => void;
   clearError: () => void;
+  getRoadById: (id: string) => Road | null;
 }
 
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
@@ -73,6 +74,17 @@ export const useRoadStore = create<RoadState>()(
         set((state) => ({
           roads: [...state.roads, road],
         }));
+      },
+
+      getRoadById: (id) => {
+        const { roads } = get();
+
+        // if (!locations.length) {
+        //   return {};
+        // }
+        const location = roads.filter((location) => location.id === id);
+
+        return location.length ? location[0] : null;
       },
 
       updateRoad: (id, updates) => {

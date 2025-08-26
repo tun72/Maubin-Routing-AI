@@ -67,7 +67,6 @@ export default function LocationForm({
         defaultValues: defaultLocations,
     })
 
-    console.log(defaultLocations);
 
     const { addLocation, updateLocation } = useLocationStore()
 

@@ -29,7 +29,7 @@ export const PlaceCard = ({ place, type, lat, lon, isFav = false }: PlaceCardPro
             if (!lat || !lon || !coordinates.lat || !coordinates.lon) {
                 return
             }
-            const response = await postRoutes({ start_lat: lat, start_lon: lon, end_lat: coordinates.lat, end_lon: coordinates.lon })
+            const response = await postRoutes({ start_lat: coordinates.lat, start_lon: coordinates.lon, end_lat: lat, end_lon: lon })
             const historyID = response.result.data.history_id
             router.push(`/map/${historyID}`)
 

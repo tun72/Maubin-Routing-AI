@@ -23,7 +23,7 @@ const routeSchema = z.object({
     burmese_name: z.string().min(1, "Burmese name is required"),
     english_name: z.string().min(1, "English name is required"),
     coordinates: z.array(z.array(z.number())).min(1, "At least one coordinate pair is required"),
-    length_m: z.number().min(0, "Length must be a positive number"),
+    length_m: z.string(),
     road_type: z.string().min(1, "Road type is required"),
     is_oneway: z.boolean().default(false).optional(),
 })
@@ -33,7 +33,8 @@ type RouteFormData = z.infer<typeof routeSchema>
 
 const roadTypes = ['highway', 'local', 'residential', 'service', 'pedestrian']
 
-export default function RoadForm({ onSubmit }: { onSubmit: (data: Roads) => Promise<{ success: boolean; error?: string }>; }) {
+export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }:
+    { onSubmit: (data: Roads) => Promise<{ success: boolean; error?: string }>, type: "UPDATE" | "CREATE", defaultRoads: RouteFormData, id?: string }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [coordinatePairs, setCoordinatePairs] = useState<Array<{ name: string; coordinates: [number, number] }>>([])
     const [open, setOpen] = useState(false)
@@ -53,14 +54,7 @@ export default function RoadForm({ onSubmit }: { onSubmit: (data: Roads) => Prom
         formState: { errors },
     } = useForm<RouteFormData>({
         resolver: zodResolver(routeSchema),
-        defaultValues: {
-            burmese_name: "",
-            english_name: "",
-            coordinates: [],
-            length_m: 0,
-            road_type: "local",
-            is_oneway: false,
-        },
+        defaultValues: defaultRoads
     })
 
 
@@ -95,12 +89,15 @@ export default function RoadForm({ onSubmit }: { onSubmit: (data: Roads) => Prom
     const handelSubmit = async (data: RouteFormData) => {
         setIsSubmitting(true)
 
+        console.log(data);
+
+
         try {
             const transformedData = {
                 burmese_name: data.burmese_name,
                 english_name: data.english_name,
                 coordinates: data.coordinates.map(([lat, lng]) => [lng, lat]), // [longitude, latitude] format
-                length_m: [data.length_m],
+                length_m: data.length_m.split(",").map((data) => Number(data)),
                 road_type: data.road_type,
 
             }
@@ -232,10 +229,7 @@ export default function RoadForm({ onSubmit }: { onSubmit: (data: Roads) => Prom
                             <Label htmlFor="length_m">Length (meters)</Label>
                             <Input
                                 id="length_m"
-                                type="number"
-                                step="0.1"
-                                min="0"
-                                {...register("length_m", { valueAsNumber: true })}
+                                {...register("length_m")}
                                 placeholder="500"
                                 className={errors.length_m ? "border-destructive" : ""}
                             />

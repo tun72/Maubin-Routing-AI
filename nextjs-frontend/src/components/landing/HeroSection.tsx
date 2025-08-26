@@ -64,7 +64,7 @@ function HeroSection() {
                     </Link>
                 </div>
             </div>
-            <div className="max-w-5xl mx-auto mt-20">
+            <div className="max-w-5xl h-98 mx-auto mt-20">
                 <AnimatedMap />
             </div>
         </section>

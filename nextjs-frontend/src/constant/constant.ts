@@ -33,8 +33,8 @@ export const favoritePlaces: Place[] = [
     image: "/api/placeholder/300/200",
     rating: 4.2,
     visits: 8,
-    lon: 95.6444175781722,
-    lat: 16.7373190850105,
+    lon: 95.653791,
+    lat: 16.727404,
   },
   {
     id: "4",
