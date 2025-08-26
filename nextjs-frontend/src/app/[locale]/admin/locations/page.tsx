@@ -134,7 +134,7 @@ function Location() {
             {/* Header Section */}
             <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Locations</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Locations</h1>
                     {locationStats && (
                         <p className="text-sm text-muted-foreground">
                             Managing {locationStats.total} location{locationStats.total !== 1 ? 's' : ''}

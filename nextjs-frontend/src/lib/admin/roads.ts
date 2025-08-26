@@ -27,6 +27,24 @@ export const postRoads = async (params: Roads) => {
   }
 };
 
+export const updateRoads = async (params: Roads) => {
+  try {
+    // const session = await auth();
+    // console.log(session?.user);
+    console.log(params);
+
+    const result = await api.put(`/admin/roads/${params.id}`, params);
+
+    if (result.status !== 200) {
+      throw new Error("Road not found");
+    }
+    return { success: true };
+  } catch (error) {
+    console.log(error);
+    return { success: false, error: "Route update error" };
+  }
+};
+
 export const deleteRoads = async (id: string) => {
   try {
     // const session = await auth();
