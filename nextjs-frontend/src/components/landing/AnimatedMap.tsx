@@ -6,7 +6,6 @@ import MapProvider from '@/lib/mapbox/provider';
 import { useTheme } from 'next-themes';
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import MapCotrols from '../map/map-controls';
-import MapStyles from '../map/map-styles';
 import { getLocations } from '@/lib/user/action';
 import MapPreMarker from '../map/map-premarker';
 // import MapCotrols from '../map/map-controls';
