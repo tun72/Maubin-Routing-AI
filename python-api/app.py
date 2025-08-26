@@ -1209,7 +1209,6 @@ def get_saved_locations():
         conn.close()
 
 @app.route('/user/locations', methods=['GET'])
-@jwt_required()
 def get_user_locations():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)

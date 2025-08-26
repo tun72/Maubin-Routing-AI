@@ -16,10 +16,12 @@ CREATE TABLE IF NOT EXISTS locations (
     burmese_name VARCHAR(255) NOT NULL,
     english_name VARCHAR(255) NOT NULL,
     address TEXT,
+    description TEXT,
     geom GEOGRAPHY(POINT, 4326) NOT NULL,
-    type VARCHAR(50) CHECK(type IN (
+    type VARCHAR(20) CHECK (type IN (
         'restaurant', 'hospital', 'gas_station', 'landmark', 
-        'intersection', 'park', 'school', 'store', 'pagoda', 'other'
+        'intersection', 'park', 'school', 'store', 'pagoda', 
+        'museum', 'library', 'hotel', 'office', 'bank', 'pharmacy', 'university', 'other'
     )),
     CONSTRAINT unique_location_point UNIQUE (geom)
 );
@@ -30,7 +32,7 @@ CREATE TABLE IF NOT EXISTS roads (
     burmese_name VARCHAR(255) NOT NULL,
     english_name VARCHAR(255) NOT NULL,
     geom GEOGRAPHY(LINESTRING, 4326) NOT NULL,
-    length_m FLOAT[] NOT NULL,
+    length_m double precision[] NOT NULL,  -- Changed to array
     road_type VARCHAR(20) CHECK(road_type IN (
         'highway', 'local', 'residential', 'service', 'pedestrian'
     )),
