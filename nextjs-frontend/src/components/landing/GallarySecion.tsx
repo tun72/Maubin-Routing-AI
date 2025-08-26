@@ -87,7 +87,7 @@ function GallarySecion() {
                             fill={true}
                             className="object-cover opacity-85 transition-transform duration-500 group-hover:scale-110"
                         />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-amber-500/10 to-orange-500/10 p-8">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center  p-8">
                         </div>
                     </div>
 
