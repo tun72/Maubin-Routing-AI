@@ -17,11 +17,11 @@ export const getLocations = async () => {
 export const postRoutes = async (params: Routes) => {
   try {
     const result = await api.post("/routes", params);
-    console.log(result);
 
     if (result.status !== 200) {
       throw new Error("Error in routes post");
     }
+    console.log(result);
     return { success: true, result: result.data };
   } catch (error) {
     console.log(error);
