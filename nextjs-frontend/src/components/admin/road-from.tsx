@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -29,150 +29,261 @@ const routeSchema = z.object({
 })
 
 type RouteFormData = z.infer<typeof routeSchema>
+type CoordinatePair = { name: string; coordinates: [number, number] }
+
+interface Road {
+    id?: string;
+    burmese_name: string;
+    english_name: string;
+    coordinates: number[][];
+    length_m: number[];
+    road_type: string;
+    is_oneway?: boolean;
+    geojson: string;
+}
 
 const roadTypes = ['highway', 'local', 'residential', 'service', 'pedestrian']
 
-export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }:
-    { onSubmit: (data: Roads) => Promise<{ success: boolean; error?: string }>, type: "UPDATE" | "CREATE", defaultRoads: RouteFormData, id?: string }) {
+// Memoized coordinate pair component to prevent unnecessary re-renders
+const CoordinatePairItem = ({
+    pair,
+    index,
+    onRemove
+}: {
+    pair: CoordinatePair;
+    index: number;
+    onRemove: (index: number) => void;
+}) => (
+    <div className="flex items-center justify-between bg-muted p-2 rounded-md">
+        <div className="flex-1">
+            <span className="font-medium">{pair.name}</span>
+            <span className="text-sm text-muted-foreground ml-2">
+                ({pair.coordinates[0].toFixed(6)}, {pair.coordinates[1].toFixed(6)})
+            </span>
+        </div>
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemove(index)}
+        >
+            <X className="h-4 w-4" />
+        </Button>
+    </div>
+);
+
+export default function RoadForm({
+    type = "CREATE",
+    defaultRoads,
+    onSubmit,
+    id
+}: {
+    onSubmit: (data: Road) => Promise<{ success: boolean; error?: string; data?: any }>;
+    type: "UPDATE" | "CREATE";
+    defaultRoads?: Partial<RouteFormData>;
+    id?: string;
+}) {
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [coordinatePairs, setCoordinatePairs] = useState<Array<{ name: string; coordinates: [number, number] }>>([])
+    const [coordinatePairs, setCoordinatePairs] = useState<CoordinatePair[]>([])
     const [open, setOpen] = useState(false)
     const [selectedLocation, setSelectedLocation] = useState("")
 
     const router = useRouter()
-    const { addRoad } = useRoadStore()
+    const { addRoad, updateRoad } = useRoadStore()
     const { locations } = useLocationStore()
-    console.log(id);
 
-
+    // Form with proper default values handling
     const {
         register,
         handleSubmit,
         setValue,
         watch,
+        reset,
         formState: { errors },
     } = useForm<RouteFormData>({
         resolver: zodResolver(routeSchema),
-        defaultValues: defaultRoads
+        defaultValues: {
+            burmese_name: defaultRoads?.burmese_name || "",
+            english_name: defaultRoads?.english_name || "",
+            coordinates: defaultRoads?.coordinates || [],
+            length_m: defaultRoads?.length_m || "",
+            road_type: defaultRoads?.road_type || "",
+            is_oneway: defaultRoads?.is_oneway || false,
+        }
     })
+
+    const isOneway = watch("is_oneway")
+
+    // Memoize filtered locations to prevent unnecessary re-computation
+    const availableLocations = useMemo(() =>
+        locations.filter(location =>
+            !coordinatePairs.some(pair => pair.name === location.english_name)
+        ),
+        [locations, coordinatePairs]
+    );
+
+    // Helper function to find location by coordinates with tolerance
+    const findLocationByCoordinates = useCallback((coord: number[]) => {
+        const tolerance = 0.001;
+        return locations.find(loc =>
+            Math.abs(loc.lon - coord[0]) < tolerance &&
+            Math.abs(loc.lat - coord[1]) < tolerance
+        );
+    }, [locations]);
+
+    // Helper function to find closest location
+    const findClosestLocation = useCallback((coord: number[]) => {
+        if (locations.length === 0) return null;
+
+        let closestLocation = locations[0];
+        let minDistance = Math.sqrt(
+            Math.pow(locations[0].lon - coord[0], 2) +
+            Math.pow(locations[0].lat - coord[1], 2)
+        );
+
+        locations.forEach(loc => {
+            const distance = Math.sqrt(
+                Math.pow(loc.lon - coord[0], 2) +
+                Math.pow(loc.lat - coord[1], 2)
+            );
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestLocation = loc;
+            }
+        });
+
+        // Only return if reasonably close (within ~1km)
+        return minDistance < 0.01 ? closestLocation : null;
+    }, [locations]);
 
     // Initialize coordinate pairs from default data
     useEffect(() => {
         if (defaultRoads?.coordinates && locations.length > 0) {
-            const initialPairs: Array<{ name: string; coordinates: [number, number] }> = []
+            const initialPairs: CoordinatePair[] = [];
 
             defaultRoads.coordinates.forEach((coord) => {
-                // Find matching location by coordinates with tolerance for floating point precision
-                // Assuming defaultRoads.coordinates is in [lon, lat] format to match your addCoordinatePair logic
-                const matchingLocation = locations.find(loc =>
-                    Math.abs(loc.lon - coord[0]) < 0.001 && Math.abs(loc.lat - coord[1]) < 0.001
-                )
-
-                console.log(matchingLocation);
-
+                const matchingLocation = findLocationByCoordinates(coord);
 
                 if (matchingLocation) {
                     initialPairs.push({
                         name: matchingLocation.english_name,
                         coordinates: [coord[0], coord[1]] as [number, number]
-                    })
+                    });
                 } else {
-                    // If no exact match found, find the closest location
-                    let closestLocation = locations[0]
-                    let minDistance = Math.sqrt(
-                        Math.pow(locations[0].lon - coord[0], 2) +
-                        Math.pow(locations[0].lat - coord[1], 2)
-                    )
+                    const closestLocation = findClosestLocation(coord);
 
-                    locations.forEach(loc => {
-                        const distance = Math.sqrt(
-                            Math.pow(loc.lon - coord[0], 2) +
-                            Math.pow(loc.lat - coord[1], 2)
-                        )
-                        if (distance < minDistance) {
-                            minDistance = distance
-                            closestLocation = loc
-                        }
-                    })
-
-                    // Only use closest location if it's reasonably close (within ~1km)
-                    if (minDistance < 0.01) {
+                    if (closestLocation) {
                         initialPairs.push({
                             name: closestLocation.english_name,
                             coordinates: [coord[0], coord[1]] as [number, number]
-                        })
+                        });
                     } else {
                         // Create a coordinate-based name if no close location found
                         initialPairs.push({
                             name: `Custom Point (${coord[0].toFixed(4)}, ${coord[1].toFixed(4)})`,
                             coordinates: [coord[0], coord[1]] as [number, number]
-                        })
+                        });
                     }
                 }
-            })
+            });
 
-            setCoordinatePairs(initialPairs)
+            setCoordinatePairs(initialPairs);
         }
-    }, [defaultRoads?.coordinates, locations])
+    }, [defaultRoads?.coordinates, locations, findLocationByCoordinates, findClosestLocation]);
 
-    const isOneway = watch("is_oneway")
+    // Reset form when defaultRoads changes (for update mode)
+    useEffect(() => {
+        if (defaultRoads && type === "UPDATE") {
+            reset({
+                burmese_name: defaultRoads.burmese_name || "",
+                english_name: defaultRoads.english_name || "",
+                coordinates: defaultRoads.coordinates || [],
+                length_m: defaultRoads.length_m || "",
+                road_type: defaultRoads.road_type || "",
+                is_oneway: defaultRoads.is_oneway || false,
+            });
+        }
+    }, [defaultRoads, type, reset]);
 
-    const addCoordinatePair = () => {
-        const location = locations.find((loc) => loc.english_name === selectedLocation)
+    // Optimized coordinate pair addition
+    const addCoordinatePair = useCallback(() => {
+        const location = locations.find((loc) => loc.english_name === selectedLocation);
         if (location && !coordinatePairs.some((pair) => pair.name === location.english_name)) {
             const newPairs = [
                 ...coordinatePairs,
-                { name: location.english_name, coordinates: [location.lon, location.lat] as [number, number] },
-            ]
-            setCoordinatePairs(newPairs)
-            setValue(
-                "coordinates",
-                newPairs.map((pair) => pair.coordinates),
-            )
-            setSelectedLocation("")
-            setOpen(false)
+                {
+                    name: location.english_name,
+                    coordinates: [location.lon, location.lat] as [number, number]
+                },
+            ];
+            setCoordinatePairs(newPairs);
+            setValue("coordinates", newPairs.map((pair) => pair.coordinates));
+            setSelectedLocation("");
+            setOpen(false);
         }
-    }
+    }, [selectedLocation, coordinatePairs, locations, setValue]);
 
-    const removeCoordinatePair = (index: number) => {
-        const newPairs = coordinatePairs.filter((_, i) => i !== index)
-        setCoordinatePairs(newPairs)
-        setValue(
-            "coordinates",
-            newPairs.map((pair) => pair.coordinates),
-        )
-    }
+    // Optimized coordinate pair removal
+    const removeCoordinatePair = useCallback((index: number) => {
+        const newPairs = coordinatePairs.filter((_, i) => i !== index);
+        setCoordinatePairs(newPairs);
+        setValue("coordinates", newPairs.map((pair) => pair.coordinates));
+    }, [coordinatePairs, setValue]);
 
-    const handelSubmit = async (data: RouteFormData) => {
-        setIsSubmitting(true)
+    // Generate GeoJSON from coordinates
+    const generateGeoJSON = useCallback((coordinates: number[][]) => {
+        return JSON.stringify({
+            type: "LineString",
+            coordinates: coordinates
+        });
+    }, []);
 
-        console.log(data);
+    const handleFormSubmit = async (data: RouteFormData) => {
+        setIsSubmitting(true);
 
         try {
-            const transformedData = {
+            const geojson = generateGeoJSON(data.coordinates);
+
+            const transformedData: Road = {
                 burmese_name: data.burmese_name,
                 english_name: data.english_name,
-                coordinates: data.coordinates.map(([lng, lat]) => [lng, lat]), // [longitude, latitude] format
-                length_m: data.length_m.split(",").map((data) => Number(data)),
+                coordinates: data.coordinates,
+                length_m: data.length_m.split(",").map((length) => Number(length.trim())),
                 road_type: data.road_type,
+                is_oneway: data.is_oneway,
+                geojson: geojson,
+            };
+
+            if (type === "UPDATE" && id) {
+                transformedData.id = id;
             }
 
-            console.log(transformedData);
+            const response = await onSubmit(transformedData);
 
-
-            const response = await onSubmit(transformedData) as { success: boolean, data: any }
             if (!response.success) {
-                throw new Error("Road Insert Error")
+                throw new Error(response.error || "Road operation failed");
             }
-            addRoad({ ...response.data, burmese_name: data.burmese_name, english_name: data.english_name, road_type: data.road_type })
-            router.push("/admin/roads")
+
+            // Update store based on operation type
+            const roadData = {
+                ...transformedData,
+                ...(response.data || {}),
+            };
+
+            if (type === "CREATE") {
+                addRoad(roadData);
+            } else if (type === "UPDATE" && id) {
+                updateRoad(id, roadData);
+            }
+
+            router.push("/admin/roads");
         } catch (error) {
-            console.log(error);
-            // Error handling
+            console.error("Form submission error:", error);
+            // You might want to show a toast notification here
         } finally {
-            setIsSubmitting(false)
+            setIsSubmitting(false);
         }
-    }
+    };
 
     return (
         <Card className="w-full max-w-2xl mx-auto py-8">
@@ -181,11 +292,14 @@ export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }
                     {type === "UPDATE" ? "Update Road" : "Create New Road"}
                 </CardTitle>
                 <CardDescription>
-                    {type === "UPDATE" ? "Update road information" : "Add a new road to the system with both Burmese and English names"}
+                    {type === "UPDATE"
+                        ? "Update road information"
+                        : "Add a new road to the system with both Burmese and English names"
+                    }
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit(handelSubmit)} className="space-y-8">
+                <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="burmese_name">Burmese Name</Label>
@@ -195,7 +309,11 @@ export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }
                                 placeholder="မြန်မာအမည်"
                                 className={errors.burmese_name ? "border-destructive" : ""}
                             />
-                            {errors.burmese_name && <p className="text-sm text-destructive">{errors.burmese_name.message}</p>}
+                            {errors.burmese_name && (
+                                <p className="text-sm text-destructive">
+                                    {errors.burmese_name.message}
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -206,7 +324,11 @@ export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }
                                 placeholder="English Name"
                                 className={errors.english_name ? "border-destructive" : ""}
                             />
-                            {errors.english_name && <p className="text-sm text-destructive">{errors.english_name.message}</p>}
+                            {errors.english_name && (
+                                <p className="text-sm text-destructive">
+                                    {errors.english_name.message}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -231,18 +353,21 @@ export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }
                                         <CommandList>
                                             <CommandEmpty>No location found.</CommandEmpty>
                                             <CommandGroup>
-                                                {locations.map((location) => (
+                                                {availableLocations.map((location) => (
                                                     <CommandItem
                                                         key={location.english_name}
                                                         value={location.english_name}
                                                         onSelect={(currentValue) => {
-                                                            setSelectedLocation(currentValue === selectedLocation ? "" : currentValue)
+                                                            setSelectedLocation(
+                                                                currentValue === selectedLocation ? "" : currentValue
+                                                            );
                                                         }}
                                                     >
                                                         <Check
                                                             className={cn(
                                                                 "mr-2 h-4 w-4",
-                                                                selectedLocation === location.english_name ? "opacity-100" : "opacity-0",
+                                                                selectedLocation === location.english_name
+                                                                    ? "opacity-100" : "opacity-0"
                                                             )}
                                                         />
                                                         {location.english_name}
@@ -253,7 +378,12 @@ export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }
                                     </Command>
                                 </PopoverContent>
                             </Popover>
-                            <Button type="button" onClick={addCoordinatePair} disabled={!selectedLocation} size="icon">
+                            <Button
+                                type="button"
+                                onClick={addCoordinatePair}
+                                disabled={!selectedLocation}
+                                size="icon"
+                            >
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
@@ -263,23 +393,20 @@ export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }
                                 <Label className="text-sm font-medium">Selected Coordinates:</Label>
                                 <div className="space-y-2">
                                     {coordinatePairs.map((pair, index) => (
-                                        <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-md">
-                                            <div className="flex-1">
-                                                <span className="font-medium">{pair.name}</span>
-                                                <span className="text-sm text-muted-foreground ml-2">
-                                                    ({pair.coordinates[0]}, {pair.coordinates[1]})
-                                                </span>
-                                            </div>
-                                            <Button type="button" variant="ghost" size="sm" onClick={() => removeCoordinatePair(index)}>
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                                        <CoordinatePairItem
+                                            key={`${pair.name}-${index}`}
+                                            pair={pair}
+                                            index={index}
+                                            onRemove={removeCoordinatePair}
+                                        />
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        {errors.coordinates && <p className="text-sm text-destructive">{errors.coordinates.message}</p>}
+                        {errors.coordinates && (
+                            <p className="text-sm text-destructive">{errors.coordinates.message}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                             Select locations from the dropdown and click + to add coordinate pairs
                         </p>
@@ -291,32 +418,46 @@ export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }
                             <Input
                                 id="length_m"
                                 {...register("length_m")}
-                                placeholder="500"
+                                placeholder="500,300,200"
                                 className={errors.length_m ? "border-destructive" : ""}
                             />
-                            {errors.length_m && <p className="text-sm text-destructive">{errors.length_m.message}</p>}
+                            {errors.length_m && (
+                                <p className="text-sm text-destructive">{errors.length_m.message}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                                Comma-separated values for multiple segments
+                            </p>
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="road_type">Road Type</Label>
-                            <Select onValueChange={(value) => setValue("road_type", value)} defaultValue={defaultRoads.road_type}>
+                            <Select
+                                onValueChange={(value) => setValue("road_type", value)}
+                                value={watch("road_type")}
+                            >
                                 <SelectTrigger className={errors.road_type ? "border-destructive" : ""}>
                                     <SelectValue placeholder="Select road type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {roadTypes.map((type) => (
-                                        <SelectItem key={type} value={type}>
-                                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                                    {roadTypes.map((roadType) => (
+                                        <SelectItem key={roadType} value={roadType}>
+                                            {roadType.charAt(0).toUpperCase() + roadType.slice(1)}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {errors.road_type && <p className="text-sm text-destructive">{errors.road_type.message}</p>}
+                            {errors.road_type && (
+                                <p className="text-sm text-destructive">{errors.road_type.message}</p>
+                            )}
                         </div>
                     </div>
 
                     <div className="flex items-center space-x-2">
-                        <Switch id="is_oneway" checked={isOneway} onCheckedChange={(checked) => setValue("is_oneway", checked)} />
+                        <Switch
+                            id="is_oneway"
+                            checked={isOneway}
+                            onCheckedChange={(checked) => setValue("is_oneway", checked)}
+                        />
                         <Label htmlFor="is_oneway">One-way road</Label>
                     </div>
 
@@ -324,17 +465,17 @@ export default function RoadForm({ type = "CREATE", defaultRoads, onSubmit, id }
                         {isSubmitting ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                {type === "UPDATE" ? "Updating Route..." : "Creating Route..."}
+                                {type === "UPDATE" ? "Updating Road..." : "Creating Road..."}
                             </>
                         ) : (
                             <>
                                 <Plus className="mr-2 h-4 w-4" />
-                                {type === "UPDATE" ? "Update Route" : "Create Route"}
+                                {type === "UPDATE" ? "Update Road" : "Create Road"}
                             </>
                         )}
                     </Button>
                 </form>
             </CardContent>
         </Card>
-    )
+    );
 }

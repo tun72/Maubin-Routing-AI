@@ -1,7 +1,7 @@
 "use client"
 import React from 'react'
 import RoadForm from '@/components/admin/road-from'
-import { postRoads } from '@/lib/admin/roads'
+import { updateRoads } from '@/lib/admin/roads'
 import { useRoadStore } from '@/store/use-roads-store'
 import { useParams } from 'next/navigation'
 
@@ -10,9 +10,6 @@ import { useParams } from 'next/navigation'
 function Update() {
     const { getRoadById } = useRoadStore()
     const { id } = useParams<{ id: string }>();
-    console.log(id);
-
-
     const defaultRoad = {
         burmese_name: "",
         english_name: "",
@@ -24,8 +21,6 @@ function Update() {
 
     const road = getRoadById(id)
 
-    console.log(road);
-
 
     if (road) {
         defaultRoad.burmese_name = road!.burmese_name as string
@@ -36,15 +31,10 @@ function Update() {
         defaultRoad.is_oneway = road.is_oneway as boolean
     }
 
-    console.log(defaultRoad);
-
-
-
-
 
 
     return (
-        <RoadForm onSubmit={postRoads} type={"CREATE"} defaultRoads={defaultRoad} />
+        <RoadForm onSubmit={updateRoads} type={"UPDATE"} defaultRoads={defaultRoad} id={id} />
     )
 }
 

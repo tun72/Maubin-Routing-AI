@@ -23,6 +23,7 @@ interface Roads {
   coordinates: number[][];
   length_m: number[];
   road_type: string;
+  id?: string;
 }
 
 interface Routes {
