@@ -104,4 +104,9 @@ interface Road {
   description?: string;
   created_at?: string;
   updated_at?: string;
+
+  geojson: string;
+  is_oneway?: boolean;
+  length_m: number[];
+  road_type: string;
 }

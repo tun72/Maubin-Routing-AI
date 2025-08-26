@@ -29,6 +29,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useRouter } from "next/navigation"
 import { Alert } from "../Alert"
 import { deleteRoads } from "@/lib/admin/roads"
+import Link from "next/link"
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,7 +118,9 @@ export const columns: ColumnDef<Road>[] = [
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem >Update</DropdownMenuItem>
+                        <DropdownMenuItem >
+                            <Link href={`/admin/roads/update/${row.getValue("id")}`}>Update</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                             <RoadDelete row={row} onDataChange={onDataChange} />
                         </DropdownMenuItem>
