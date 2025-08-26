@@ -4,7 +4,7 @@ import { Brain, MapPin, Zap, Target } from "lucide-react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { LocationCombobox, type Location } from "./location-combox"
 
 import { getLocations, postRoutes } from "@/lib/user/action"
@@ -23,12 +23,13 @@ type SearchFormData = z.infer<typeof searchFormSchema>
 
 function SearchLocation() {
     const [locations, setLocations] = useState<Location[]>([])
-    const [isLoadingLocations, setIsLoadingLocations] = useState(true)
-    const [locationError, setLocationError] = useState<string | null>(null)
-    const [isProcessingRoute, setIsProcessingRoute] = useState(false)
-    const [isRouteReady, setIsRouteReady] = useState(false)
-    const [historyId, setHistoryId] = useState("")
-
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [routeState, setRouteState] = useState<{
+        processing: boolean
+        ready: boolean
+        historyId: string
+    }>({ processing: false, ready: false, historyId: "" })
 
     const {
         control,
@@ -36,67 +37,77 @@ function SearchLocation() {
         formState: { errors, isSubmitting },
     } = useForm<SearchFormData>({
         resolver: zodResolver(searchFormSchema),
-        defaultValues: {
-            startLocationId: "",
-            destLocationId: "",
-        },
+        defaultValues: { startLocationId: "", destLocationId: "" },
     })
 
+    // Fetch locations only once
     useEffect(() => {
         const fetchLocations = async () => {
             try {
-                setIsLoadingLocations(true)
-                setLocationError(null)
+                setIsLoading(true)
+                setError(null)
                 const response = await getLocations()
-                console.log(response)
-
-                const data = await response.locations.data
-                setLocations(data)
-            } catch (error) {
-                console.error("Error fetching locations:", error)
-                setLocationError(error instanceof Error ? error.message : "Failed to load locations")
+                setLocations(response.locations.data) // no need for `await` on .data
+            } catch (err) {
+                console.error("Error fetching locations:", err)
+                setError(err instanceof Error ? err.message : "Failed to load locations")
             } finally {
-                setIsLoadingLocations(false)
+                setIsLoading(false)
             }
         }
-
         fetchLocations()
     }, [])
 
-    const onSubmit = async (data: SearchFormData) => {
-        const startLocation = locations.find((loc) => loc.id === data.startLocationId)
-        const destLocation = locations.find((loc) => loc.id === data.destLocationId)
+    // Memoize location lookup
+    const findLocation = useCallback(
+        (id: string) =>
+            locations.find(
+                (loc) => loc.english_name.trim().toLowerCase() === id.trim().toLowerCase()
+            ),
+        [locations]
+    )
 
-        if (startLocation && destLocation) {
+    const onSubmit = useCallback(
+        async (data: SearchFormData) => {
+            const startLocation = findLocation(data.startLocationId)
+            const destLocation = findLocation(data.destLocationId)
+
+            if (!startLocation || !destLocation) return
+
             const formattedData = {
                 start_lat: startLocation.lat,
                 start_lon: startLocation.lon,
-                end_lon: destLocation.lon,
                 end_lat: destLocation.lat,
+                end_lon: destLocation.lon,
             }
 
             try {
-                setIsProcessingRoute(true)
-                setIsRouteReady(false)
+                setRouteState({ processing: true, ready: false, historyId: "" })
                 const response = await postRoutes(formattedData)
-                console.log(response.result)
-                console.log("Form submitted:", formattedData)
-                setHistoryId(response.result.data.history_id)
-                setIsRouteReady(true)
-            } catch (error) {
-                console.error("Error processing route:", error)
-            } finally {
-                setIsProcessingRoute(false)
-            }
-        }
-    }
+                if (!response.success) {
+                    throw new Error(response.error)
+                }
+                setRouteState({
+                    processing: false,
+                    ready: true,
+                    historyId: response.result.data.history_id,
+                })
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (err: any) {
 
-    if (isLoadingLocations) {
+                setError(err.message)
+                setRouteState({ processing: false, ready: false, historyId: "" })
+            }
+        },
+        [findLocation]
+    )
+
+    if (isLoading) {
         return <LoadingLocation />
     }
 
-    if (locationError) {
-        return <LocationError locationError={locationError} />
+    if (error) {
+        return <LocationError locationError={error} />
     }
 
     return (
@@ -155,7 +166,7 @@ function SearchLocation() {
             <div className="transition-all duration-500 lg:col-span-2">
                 <div className="bg-white/70 border border-white/40 dark:bg-white/10 dark:border-white/20 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden">
                     <div className="relative transition-all duration-500 h-[500px]">
-                        {isProcessingRoute ? (
+                        {routeState.processing ? (
                             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-pink-500/20 dark:from-purple-400/20 dark:to-pink-400/20 backdrop-blur-md rounded-2xl z-10">
                                 <div className="text-center p-8 bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl border border-white/50 dark:border-gray-700/50">
                                     <div className="flex items-center justify-center space-x-3 mb-4">
@@ -203,7 +214,7 @@ function SearchLocation() {
                                 </div>
                             </div>
 
-                        ) : isRouteReady ? (
+                        ) : routeState.ready ? (
                             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-emerald-500/20 dark:from-green-400/20 dark:to-emerald-400/20 backdrop-blur-md rounded-2xl z-10">
                                 <div className="text-center p-8 bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl border border-white/50 dark:border-gray-700/50">
                                     <div className="flex items-center justify-center mb-6">
@@ -214,10 +225,10 @@ function SearchLocation() {
                                     <h3 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent mb-4">
                                         Your route is ready
                                     </h3>
-                                    {historyId && <Button asChild
+                                    {routeState.historyId && <Button asChild
                                         className="bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-500 dark:to-emerald-500 hover:from-green-700 hover:to-emerald-700 dark:hover:from-green-600 dark:hover:to-emerald-600 text-white py-3 px-8 rounded-xl font-medium transition-all duration-200 shadow-lg transform hover:scale-105 active:scale-95"
                                     >
-                                        <Link href={`/map/${historyId}`}>go now</Link>
+                                        <Link href={`/map/${routeState.historyId}`}>go now</Link>
                                     </Button>}
                                 </div>
                             </div>

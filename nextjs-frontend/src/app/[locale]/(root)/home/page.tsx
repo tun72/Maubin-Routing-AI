@@ -39,8 +39,9 @@ const Page = () => {
             <div className="min-h-screen mx-auto max-w-7xl py-8">
                 <CurrentLocaltion />
                 <QuickAction />
-                <LastVisited />
                 <FavouritePlaces />
+                <LastVisited />
+
 
             </div>
         </section>

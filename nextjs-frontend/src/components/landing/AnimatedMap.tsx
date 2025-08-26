@@ -83,7 +83,6 @@ function AnimatedMap() {
 
             <MapProvider mapContainer={mapContainer}>
                 <MapCotrols />
-                <MapStyles />
                 {loading ? <p>Locading...</p> : <MapPreMarker locations={locations} />}
                 {error && <p>{error}</p>}
             </MapProvider>

@@ -27,7 +27,7 @@ interface ComboboxProps {
 export function LocationCombobox({ locations, value, onValueChange }: ComboboxProps) {
     const [open, setOpen] = React.useState(false)
 
-    const selected = locations.find((loc) => loc.id === value)
+    const selected = locations.find((loc) => loc.english_name === value)
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -51,7 +51,7 @@ export function LocationCombobox({ locations, value, onValueChange }: ComboboxPr
                             {locations.map((loc) => (
                                 <CommandItem
                                     key={loc.id}
-                                    value={loc.id}
+                                    value={loc.english_name}
                                     onSelect={(currentValue) => {
                                         const newValue = currentValue === value ? "" : currentValue
                                         onValueChange?.(newValue)

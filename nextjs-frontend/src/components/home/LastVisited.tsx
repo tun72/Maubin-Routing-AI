@@ -1,15 +1,8 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { History } from "lucide-react"
 import { PlaceCard } from "./PlaceCard"
-import {
-    Carousel,
-    CarouselContent,
-    CarouselItem,
-    CarouselNext,
-    CarouselPrevious,
-} from "../ui/carousel"
 import AddNewPlaceCard from "./AddNewPlace"
 import { getHistories } from "@/lib/user/action"
 import { PlaceCardLoading } from "../PlaceCardLoading"
@@ -26,91 +19,117 @@ type Place = {
     visits: number
 }
 
-function LastVisited() {
-    const [places, setPlaces] = useState<Place[]>([])
-    const [loading, setLoading] = useState(true)
+interface LastVisitedProps {
+    initialPlaces?: Place[]
+    maxItems?: number
+}
+
+const LOADING_SKELETON_COUNT = 4
+
+function LastVisited({ initialPlaces = [], maxItems }: LastVisitedProps) {
+    const [places, setPlaces] = useState<Place[]>(initialPlaces)
+    const [loading, setLoading] = useState(!initialPlaces.length)
     const [error, setError] = useState<string | null>(null)
-    const hasFetched = useRef(false)
+
+    const limitedPlaces = useMemo(() =>
+        maxItems ? places.slice(0, maxItems) : places,
+        [places, maxItems]
+    )
+
+    const fetchPlaces = useCallback(async () => {
+        // Skip if we already have initial data
+        if (initialPlaces.length > 0) return
+
+        try {
+            setLoading(true)
+            setError(null)
+
+            const res = await getHistories()
+
+            if (!res.success) {
+                throw new Error(res.error || "Failed to fetch history")
+            }
+
+            setPlaces(res.result || [])
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to load history"
+            console.error("Error fetching histories:", err)
+            setError(errorMessage)
+        } finally {
+            setLoading(false)
+        }
+    }, [initialPlaces.length])
 
     useEffect(() => {
-        // Prevent multiple fetches
-        if (hasFetched.current) return
-        hasFetched.current = true
-        const abortController = new AbortController()
-        const fetchPlaces = async () => {
-            try {
-                setLoading(true)
-                setError(null)
-                const res = await getHistories()
-                console.log(res);
-
-                if (!res.success) {
-                    throw new Error(res.error || "Failed to fetch history")
-                }
-                setPlaces(res.result || [])
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (err: any) {
-                // Only set error if it's not an abort error
-                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
-                    console.error("Error fetching histories:", err)
-                    setError(err.message || "Failed to load history")
-                }
-            } finally {
-                setLoading(false)
-            }
-        }
         fetchPlaces()
-        return () => {
-            // Cleanup: abort ongoing request if component unmounts
-            abortController.abort()
+    }, [fetchPlaces])
+
+    const renderContent = useMemo(() => {
+        if (loading) {
+            return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {Array.from({ length: LOADING_SKELETON_COUNT }, (_, index) => (
+                        <PlaceCardLoading key={`loading-${index}`} />
+                    ))}
+                </div>
+            )
         }
-    }, [])
+
+        if (error) {
+            return (
+                <div className="flex items-center justify-center py-12 px-4">
+                    <div className="text-center">
+                        <p className="text-red-500 mb-2">{error}</p>
+                        <button
+                            onClick={fetchPlaces}
+                            className="text-sm text-blue-500 hover:text-blue-600 underline"
+                        >
+                            Try again
+                        </button>
+                    </div>
+                </div>
+            )
+        }
+
+        if (limitedPlaces.length === 0) {
+            return (
+                <div className="flex items-center justify-center py-12 px-4">
+                    <p className="text-gray-500 dark:text-gray-400">
+                        No recently visited places yet
+                    </p>
+                </div>
+            )
+        }
+
+        return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <AddNewPlaceCard />
+                {limitedPlaces.map((place) => (
+                    <PlaceCard
+                        key={place.id}
+                        place={place}
+                        type="favorite"
+                    />
+                ))}
+            </div>
+        )
+    }, [loading, error, limitedPlaces, fetchPlaces])
 
     return (
         <section className="px-6 py-4">
-            <Carousel opts={{ align: "start" }} className="w-full">
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center space-x-2">
-                        <History className="w-5 h-5 text-blue-500" />
-                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-50">
-                            Recently Visited
-                        </h2>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <CarouselPrevious className="relative left-auto top-auto translate-y-0" />
-                        <CarouselNext className="relative right-auto top-auto translate-y-0" />
-                    </div>
-                </div>
-
-                <CarouselContent className="-ml-1 my-4">
-                    {loading ? (
-                        Array.from({ length: 4 }).map((_, index) => (
-                            <CarouselItem key={index} className="pl-1 lg:basis-1/4 md:basis-1/3">
-                                <PlaceCardLoading />
-                            </CarouselItem>
-                        ))
-                    ) : error ? (
-                        <div className="w-full py-8 text-center">
-                            <p className="text-red-500">{error}</p>
-                        </div>
-                    ) : (
-                        <>
-                            <CarouselItem className="pl-1 lg:basis-1/4">
-                                <AddNewPlaceCard />
-                            </CarouselItem>
-                            {places.map((place) => (
-                                <CarouselItem
-                                    key={place.id}
-                                    className="pl-1 lg:basis-1/4 md:basis-1/3"
-                                >
-                                    <PlaceCard place={place} type="favorite" />
-                                </CarouselItem>
-                            ))}
-
-                        </>
+            <header className="flex items-center space-x-2 mb-6">
+                <History className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-50">
+                    Recently Visited
+                    {!loading && limitedPlaces.length > 0 && (
+                        <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                            ({limitedPlaces.length})
+                        </span>
                     )}
-                </CarouselContent>
-            </Carousel>
+                </h2>
+            </header>
+
+            {renderContent}
         </section>
     )
 }
