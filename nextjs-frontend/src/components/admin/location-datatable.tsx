@@ -295,7 +295,7 @@ export default function LocationDataTable({
             </div>
 
             {/* Table */}
-            <div className="max-w-6xl overflow-x-auto rounded-md border">
+            <div className="w-full overflow-x-auto rounded-md border">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
