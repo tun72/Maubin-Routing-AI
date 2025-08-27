@@ -124,7 +124,7 @@ export default function RoadForm({
 
     // Helper function to find location by coordinates with tolerance
     const findLocationByCoordinates = useCallback((coord: number[]) => {
-        const tolerance = 0.001;
+        const tolerance = 0.00001;
         return locations.find(loc =>
             Math.abs(loc.lon - coord[0]) < tolerance &&
             Math.abs(loc.lat - coord[1]) < tolerance
@@ -286,7 +286,7 @@ export default function RoadForm({
     };
 
     return (
-        <Card className="w-full max-w-2xl mx-auto py-8">
+        <Card className="w-full max-w-2xl mx-auto py-8 mb-16">
             <CardHeader className="mb-4">
                 <CardTitle className="flex items-center gap-2">
                     {type === "UPDATE" ? "Update Road" : "Create New Road"}
