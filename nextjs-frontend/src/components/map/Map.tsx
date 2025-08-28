@@ -6,9 +6,8 @@ import MapProvider from "@/lib/mapbox/provider";
 import MapStyles from "@/components/map/map-styles";
 import MapCotrols from "@/components/map/map-controls";
 import MapPreMarker from "./map-premarker";
-import { getLocations } from "@/lib/admin/locations";
 import RouteControls from "./route-control";
-import { getHistory } from "@/lib/user/action";
+import { getHistory, getLocations } from "@/lib/user/action";
 
 export default function Map({ id }: { id: string }) {
     const mapContainer = useRef<HTMLDivElement>(null);
@@ -36,7 +35,9 @@ export default function Map({ id }: { id: string }) {
             }
 
             const locationsData = locationsResponse.locations?.data ?? [];
-            setLocations(locationsData);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const locationsFilter = locationsData.filter((loc: any) => loc.type !== "intersection")
+            setLocations(locationsFilter);
             setSampleRouteData(historyResponse.result);
 
         } catch (err) {
