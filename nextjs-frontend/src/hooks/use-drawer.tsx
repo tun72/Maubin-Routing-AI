@@ -213,9 +213,9 @@ export const useRouteDrawer = ({
           "line-cap": "round",
         },
         paint: {
-          "line-color": "#00D4FF",
-          "line-width": 4,
-          "line-opacity": 0.9,
+          "line-color": "#6b64ff",
+          "line-width": 5,
+          "line-opacity": 1,
         },
       });
 
